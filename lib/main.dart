@@ -1,9 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:iotmcc_mobile/core/network/api_service.dart';
+import 'package:iotmcc_mobile/core/network/dio_client.dart';
+import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
+import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
+import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
 import 'package:iotmcc_mobile/routes/app_routes.dart';
 import 'package:iotmcc_mobile/routes/route_generator.dart';
+import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 
 void main() {
-  runApp(const MyApp());
+  // Setup Dependencies
+  final dio = Dio();
+  final dioClient = DioClient(dio);
+  final apiService = ApiService(dioClient);
+  final prefsHelper = SharedPreferencesHelper();
+  final authRepository = AuthRepository(apiService, prefsHelper);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(authRepository),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -16,7 +39,7 @@ class MyApp extends StatelessWidget {
       // 1. Menghilangkan banner "DEBUG"
       debugShowCheckedModeBanner: false,
 
-      title: 'Flutter App',
+      title: 'IoTMCC Mobile',
 
       // 2. Menambahkan tema terpusat untuk seluruh aplikasi
       theme: ThemeData(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
 import 'package:iotmcc_mobile/routes/app_routes.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,8 +23,40 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // Fungsi untuk menangani aksi login
+  void _handleLogin() async {
+    // Ambil AuthProvider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    // Panggil fungsi login dari provider
+    bool success = await authProvider.login(email, password);
+
+    // Cek hasil login
+    if (mounted) {
+      // Pastikan widget masih ada di tree
+      if (success) {
+        // Jika sukses, navigasi ke dashboard
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      } else {
+        // Jika gagal, tampilkan pesan error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Tonton state dari provider
+    final authProvider = context.watch<AuthProvider>();
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -39,11 +73,11 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset(
-                    'assets/images/logo.png', 
-                    width: 120, 
+                    'assets/images/logo.png',
+                    width: 120,
                     height: 120,
                   ),
-                  const SizedBox(height: 30), 
+                  const SizedBox(height: 30),
                   const Text(
                     'Login',
                     textAlign: TextAlign.center,
@@ -84,7 +118,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   SizedBox(
                     width: 327,
                     height: 40,
@@ -121,24 +154,22 @@ class _LoginPageState extends State<LoginPage> {
                     width: 327,
                     height: 40,
                     child: ElevatedButton(
-                      onPressed: () {
-                        final email = _emailController.text;
-                        final password = _passwordController.text;
-                        print('Email: $email');
-                        print('Password: $password');
-                        Navigator.pushReplacementNamed(
-                            context, AppRoutes.dashboard);
-                      },
+                      onPressed: authProvider.state == AuthState.loading
+                          ? null // Nonaktifkan tombol saat loading
+                          : _handleLogin,
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(fontSize: 14, fontFamily: 'Poppins'),
-                      ),
+                      child: authProvider.state == AuthState.loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                  fontSize: 14, fontFamily: 'Poppins'),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 24),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:iotmcc_mobile/presentation/pages/dashboard_page.dart';
+import 'package:iotmcc_mobile/presentation/pages/dashboard_page.dart';
 // import 'package:iotmcc_mobile/presentation/pages/forgot_password_page.dart';
 import 'package:iotmcc_mobile/presentation/pages/login_page.dart';
 import 'package:iotmcc_mobile/presentation/pages/splash_screen.dart';
@@ -16,8 +16,8 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const LoginPage());
       // case AppRoutes.forgotPassword:
       //   return MaterialPageRoute(builder: (_) => const ForgotPasswordPage());
-      // case AppRoutes.dashboard:
-      //   return MaterialPageRoute(builder: (_) => const DashboardPage());
+      case AppRoutes.dashboard:
+        return MaterialPageRoute(builder: (_) => const DashboardPage());
       
       default:
         return _errorRoute();
