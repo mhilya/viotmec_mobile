@@ -34,32 +34,62 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Menghapus 'const' dari MaterialApp agar bisa menggunakan ThemeData
+    const primaryColor = Color(0xFF34A853);
+
     return MaterialApp(
-      // 1. Menghilangkan banner "DEBUG"
       debugShowCheckedModeBanner: false,
-
       title: 'IoTMCC Mobile',
-
-      // 2. Menambahkan tema terpusat untuk seluruh aplikasi
       theme: ThemeData(
-        // Mengatur font default menjadi Poppins
         fontFamily: 'Poppins',
-
-        // Mengatur skema warna utama aplikasi
+        scaffoldBackgroundColor: Colors.white,
+        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4CAF50), // Warna utama dari tombol login
-          primary: const Color(0xFF4CAF50),
+          seedColor: primaryColor,
+          primary: primaryColor,
+          brightness: Brightness.light,
         ),
-
-        // Mengatur warna latar belakang default untuk semua Scaffold (halaman)
-        scaffoldBackgroundColor: const Color(0xFFE6F8E8),
-
-        // Mengatur tema default untuk semua ElevatedButton
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          foregroundColor: Colors.black87,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Poppins',
+            color: Colors.black87,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: primaryColor, width: 2),
+          ),
+          hintStyle: TextStyle(color: Colors.grey[400]),
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CAF50), // Warna tombol
-            foregroundColor: Colors.white, // Warna teks di dalam tombol
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -71,21 +101,16 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-
-        // Mengatur tema default untuk semua TextField
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none, // Hilangkan border default
-          ),
-          hintStyle: TextStyle(color: Colors.grey[400]),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: primaryColor,
+          unselectedItemColor: Colors.grey.shade400,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
         ),
-
-        useMaterial3: true,
       ),
-
       initialRoute: AppRoutes.splash,
       onGenerateRoute: RouteGenerator.generateRoute,
     );

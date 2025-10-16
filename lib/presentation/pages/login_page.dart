@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       // Pastikan widget masih ada di tree
       if (success) {
         // Jika sukses, navigasi ke dashboard
-        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        Navigator.pushReplacementNamed(context, AppRoutes.main);
       } else {
         // Jika gagal, tampilkan pesan error
         ScaffoldMessenger.of(context).showSnackBar(
