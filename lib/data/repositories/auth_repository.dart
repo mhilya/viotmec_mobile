@@ -11,11 +11,24 @@ class AuthRepository {
   Future<LoginResponse> login(String email, String password) async {
     final response = await _apiService.login(email, password);
     
-    // Jika login sukses, simpan token
     if (response.status && response.accessToken != null) {
       await _prefsHelper.saveToken(response.accessToken!);
     }
     
     return response;
+  }
+
+  Future<bool> logout() async {
+    try {
+      // Coba logout dari server
+      await _apiService.logout();
+    } catch (e) {
+      // Tetap lanjutkan meskipun server logout gagal
+      print('Server logout failed: $e');
+    }
+    
+    // Selalu hapus token lokal
+    await _prefsHelper.removeToken();
+    return true;
   }
 }

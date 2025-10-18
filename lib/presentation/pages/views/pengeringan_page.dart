@@ -1,8 +1,15 @@
 // import 'package:flutter/material.dart';
 // import 'package:fl_chart/fl_chart.dart';
 
-// class PengeringanPage extends StatelessWidget {
+// class PengeringanPage extends StatefulWidget {
 //   const PengeringanPage({super.key});
+
+//   @override
+//   State<PengeringanPage> createState() => _PengeringanPageState();
+// }
+
+// class _PengeringanPageState extends State<PengeringanPage> {
+//   bool isBlowerOn = true;
 
 //   @override
 //   Widget build(BuildContext context) {
@@ -11,6 +18,8 @@
 //       child: Column(
 //         children: [
 //           _buildHeaderCard(),
+//           const SizedBox(height: 20),
+//           _buildBlowerControlCard(),
 //           const SizedBox(height: 20),
 //           _buildChartCard(),
 //           const SizedBox(height: 20),
@@ -380,6 +389,122 @@
 //     );
 //   }
 
+//   Widget _buildBlowerControlCard() {
+//     return Container(
+//       width: double.infinity,
+//       padding: const EdgeInsets.all(20),
+//       decoration: BoxDecoration(
+//         color: Colors.white,
+//         borderRadius: BorderRadius.circular(20),
+//         border: Border.all(color: Colors.grey.shade200),
+//         boxShadow: [
+//           BoxShadow(
+//             color: Colors.black.withOpacity(0.05),
+//             blurRadius: 10,
+//             offset: const Offset(0, 4),
+//           ),
+//         ],
+//       ),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Row(
+//             children: [
+//               Container(
+//                 padding: const EdgeInsets.all(8),
+//                 decoration: BoxDecoration(
+//                   color: const Color(0xFF2196F3).withOpacity(0.1),
+//                   borderRadius: BorderRadius.circular(10),
+//                 ),
+//                 child: const Icon(Icons.air, size: 20, color: Color(0xFF2196F3)),
+//               ),
+//               const SizedBox(width: 12),
+//               const Text(
+//                 'Kontrol Blower',
+//                 style: TextStyle(
+//                   fontFamily: 'Poppins',
+//                   fontWeight: FontWeight.w600,
+//                   fontSize: 16,
+//                   color: Colors.black87,
+//                 ),
+//               ),
+//             ],
+//           ),
+//           const SizedBox(height: 16),
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//             children: [
+//               Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Text(
+//                     'Status Blower',
+//                     style: TextStyle(
+//                       fontFamily: 'Poppins',
+//                       fontSize: 14,
+//                       color: Colors.grey.shade600,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Text(
+//                     isBlowerOn ? 'MENYALA' : 'MATI',
+//                     style: TextStyle(
+//                       fontFamily: 'Poppins',
+//                       fontSize: 16,
+//                       fontWeight: FontWeight.w700,
+//                       color: isBlowerOn ? const Color(0xFF2196F3) : Colors.grey,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//               Switch(
+//                 value: isBlowerOn,
+//                 onChanged: (value) {
+//                   setState(() {
+//                     isBlowerOn = value;
+//                   });
+//                 },
+//                 activeColor: const Color(0xFF2196F3),
+//                 activeTrackColor: const Color(0xFF2196F3).withOpacity(0.5),
+//               ),
+//             ],
+//           ),
+//           const SizedBox(height: 12),
+//           Container(
+//             padding: const EdgeInsets.all(12),
+//             decoration: BoxDecoration(
+//               color: Colors.grey.shade50,
+//               borderRadius: BorderRadius.circular(12),
+//               border: Border.all(color: Colors.grey.shade200),
+//             ),
+//             child: Row(
+//               children: [
+//                 Icon(
+//                   Icons.info_outline,
+//                   color: Colors.blue.shade600,
+//                   size: 16,
+//                 ),
+//                 const SizedBox(width: 8),
+//                 Expanded(
+//                   child: Text(
+//                     'Blower berfungsi untuk mengatur sirkulasi udara dalam ruang pengeringan',
+//                     style: TextStyle(
+//                       fontFamily: 'Poppins',
+//                       fontSize: 12,
+//                       color: Colors.grey.shade600,
+//                     ),
+//                     maxLines: 2,
+//                     overflow: TextOverflow.ellipsis,
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
 //   Widget _buildInfoCard({
 //     required IconData icon,
 //     required String title,
@@ -619,7 +744,9 @@ class _PengeringanPageState extends State<PengeringanPage> {
           const SizedBox(height: 20),
           _buildBlowerControlCard(),
           const SizedBox(height: 20),
-          _buildChartCard(),
+          _buildTempChartCard(), // <-- Grafik Suhu 24 Jam
+          const SizedBox(height: 20),
+          _buildHumidityChartCard(), // <-- KARTU BARU: Grafik Kelembapan 24 Jam
           const SizedBox(height: 20),
           _buildInfoCards(),
           const SizedBox(height: 20),
@@ -715,7 +842,7 @@ class _PengeringanPageState extends State<PengeringanPage> {
             ),
           ),
           const SizedBox(width: 6),
-          Text(
+          const Text(
             'AKTIF',
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -730,7 +857,8 @@ class _PengeringanPageState extends State<PengeringanPage> {
     );
   }
 
-  Widget _buildChartCard() {
+  // Widget ini diubah untuk menampilkan suhu 24 jam
+  Widget _buildTempChartCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -749,19 +877,14 @@ class _PengeringanPageState extends State<PengeringanPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Riwayat Suhu 7 Hari Terakhir',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
+          const Text(
+            'Riwayat Suhu 24 Jam Terakhir',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -772,38 +895,33 @@ class _PengeringanPageState extends State<PengeringanPage> {
                   show: true,
                   drawVerticalLine: true,
                   horizontalInterval: 5,
-                  verticalInterval: 1,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.grey.shade200,
-                      strokeWidth: 1,
-                      dashArray: [4],
-                    );
-                  },
-                  getDrawingVerticalLine: (value) {
-                    return FlLine(
-                      color: Colors.grey.shade200,
-                      strokeWidth: 1,
-                      dashArray: [4],
-                    );
-                  },
+                  verticalInterval: 4,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                    dashArray: [4],
+                  ),
+                  getDrawingVerticalLine: (value) => FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                    dashArray: [4],
+                  ),
                 ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
+                      interval: 6,
                       getTitlesWidget: (value, meta) {
-                        final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
-                            days[value.toInt()],
+                            '${value.toInt().toString().padLeft(2, '0')}:00',
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
+                                fontFamily: 'Poppins',
+                                fontSize: 10,
+                                color: Colors.grey),
                           ),
                         );
                       },
@@ -813,65 +931,44 @@ class _PengeringanPageState extends State<PengeringanPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${value.toInt()}°C',
-                          style: const TextStyle(
+                      getTitlesWidget: (value, meta) => Text(
+                        '${value.toInt()}°C',
+                        style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
+                            color: Colors.grey),
+                      ),
                     ),
                   ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                ),
+                    show: true,
+                    border: Border.all(color: Colors.grey.shade300)),
                 minX: 0,
-                maxX: 6,
-                minY: 0,
+                maxX: 23,
+                minY: 40,
                 maxY: 60,
                 lineBarsData: [
                   LineChartBarData(
                     spots: const [
-                      FlSpot(0, 42),
-                      FlSpot(1, 44),
-                      FlSpot(2, 45),
-                      FlSpot(3, 43),
-                      FlSpot(4, 46),
-                      FlSpot(5, 45),
-                      FlSpot(6, 45),
+                      FlSpot(0, 45), FlSpot(2, 48), FlSpot(4, 50),
+                      FlSpot(6, 52), FlSpot(8, 51), FlSpot(10, 49),
+                      FlSpot(12, 48), FlSpot(14, 46), FlSpot(16, 45),
+                      FlSpot(18, 44), FlSpot(20, 43), FlSpot(23, 42),
                     ],
                     isCurved: true,
                     color: const Color(0xFF2196F3),
                     barWidth: 4,
                     isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: Color(0xFF2196F3),
-                        );
-                      },
-                    ),
+                    dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         colors: [
                           const Color(0xFF2196F3).withOpacity(0.3),
-                          const Color(0xFF2196F3).withOpacity(0.1),
+                          const Color(0xFF2196F3).withOpacity(0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -887,103 +984,130 @@ class _PengeringanPageState extends State<PengeringanPage> {
     );
   }
 
-  Widget _buildInfoCards() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          return Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard(
-                  icon: Icons.thermostat,
-                  title: 'Parameter Utama',
-                  children: [
-                    _infoRow('Suhu Rata-rata:', '45° C'),
-                    _infoRow('Kelembapan:', '55%'),
-                  ],
+  // WIDGET BARU untuk menampilkan kelembapan 24 jam
+  Widget _buildHumidityChartCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Riwayat Kelembapan 24 Jam Terakhir',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: true,
+                  horizontalInterval: 5,
+                  verticalInterval: 4,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                    dashArray: [4],
+                  ),
+                  getDrawingVerticalLine: (value) => FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                    dashArray: [4],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildInfoCard(
-                  icon: Icons.power_settings_new,
-                  title: 'Status Operasional',
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.blue,
-                            border: Border.all(color: Colors.blue.shade700, width: 3),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 6,
+                      getTitlesWidget: (value, meta) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            '${value.toInt().toString().padLeft(2, '0')}:00',
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 10,
+                                color: Colors.grey),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'AKTIF',
-                          style: TextStyle(
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) => Text(
+                        '${value.toInt()}%',
+                        style: const TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ],
-                    )
-                  ],
+                            fontSize: 10,
+                            color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
-              ),
-            ],
-          );
-        } else {
-          return Column(
-            children: [
-              _buildInfoCard(
-                icon: Icons.thermostat,
-                title: 'Parameter Utama',
-                children: [
-                  _infoRow('Suhu Rata-rata:', '45° C'),
-                  _infoRow('Kelembapan:', '55%'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildInfoCard(
-                icon: Icons.power_settings_new,
-                title: 'Status Operasional',
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.blue,
-                          border: Border.all(color: Colors.blue.shade700, width: 3),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'AKTIF',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
+                borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.grey.shade300)),
+                minX: 0,
+                maxX: 23,
+                minY: 40,
+                maxY: 70,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: const [
+                      FlSpot(0, 65), FlSpot(2, 62), FlSpot(4, 60),
+                      FlSpot(6, 58), FlSpot(8, 55), FlSpot(10, 56),
+                      FlSpot(12, 58), FlSpot(14, 60), FlSpot(16, 61),
+                      FlSpot(18, 63), FlSpot(20, 64), FlSpot(23, 65),
                     ],
-                  )
+                    isCurved: true,
+                    color: Colors.teal, // Warna berbeda untuk kelembapan
+                    barWidth: 4,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.teal.withOpacity(0.3),
+                          Colors.teal.withOpacity(0.0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ],
-          );
-        }
-      },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1100,6 +1224,108 @@ class _PengeringanPageState extends State<PengeringanPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoCards() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 600) {
+          return Row(
+            children: [
+              Expanded(
+                child: _buildInfoCard(
+                  icon: Icons.thermostat,
+                  title: 'Parameter Utama',
+                  children: [
+                    _infoRow('Suhu Rata-rata:', '45° C'),
+                    _infoRow('Kelembapan:', '55%'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildInfoCard(
+                  icon: Icons.power_settings_new,
+                  title: 'Status Operasional',
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue,
+                            border:
+                                Border.all(color: Colors.blue.shade700, width: 3),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'AKTIF',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: [
+              _buildInfoCard(
+                icon: Icons.thermostat,
+                title: 'Parameter Utama',
+                children: [
+                  _infoRow('Suhu Rata-rata:', '45° C'),
+                  _infoRow('Kelembapan:', '55%'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildInfoCard(
+                icon: Icons.power_settings_new,
+                title: 'Status Operasional',
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.blue,
+                          border: Border.all(
+                              color: Colors.blue.shade700, width: 3),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'AKTIF',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -1229,13 +1455,16 @@ class _PengeringanPageState extends State<PengeringanPage> {
 
   List<Widget> _buildEventLogItems() {
     final events = [
-      {'time': '11:45', 'event': 'Monitoring kelembapan stabil di 55%', 'duration': '05:30:00'},
-      {'time': '10:20', 'event': 'Penyesuaian suhu ke 45°C', 'duration': '06:55:15'},
-      {'time': '09:15', 'event': 'Proses pengeringan batch #0236 dimulai', 'duration': '08:00:45'},
-      {'time': '08:00', 'event': 'Quality check passed - ready for drying', 'duration': '09:15:30'},
+      {'time': '11:45', 'event': 'Monitoring kelembapan stabil di 55%','duration': '05:30:00'},
+      {'time': '10:20', 'event': 'Penyesuaian suhu ke 45°C','duration': '06:55:15'},
+      {'time': '09:15', 'event': 'Proses pengeringan batch #0236 dimulai','duration': '08:00:45'},
+      {'time': '08:00', 'event': 'Quality check passed - ready for drying','duration': '09:15:30'},
     ];
 
-    return events.map((event) => _eventLogRow(event['event']!, event['duration']!, event['time']!)).toList();
+    return events
+        .map((event) =>
+            _eventLogRow(event['event']!, event['duration']!, event['time']!))
+        .toList();
   }
 
   Widget _eventLogRow(String event, String duration, String time) {
@@ -1256,9 +1485,9 @@ class _PengeringanPageState extends State<PengeringanPage> {
               color: const Color(0xFF2196F3).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.circle,
-              color: const Color(0xFF2196F3),
+              color: Color(0xFF2196F3),
               size: 8,
             ),
           ),

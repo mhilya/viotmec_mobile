@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:iotmcc_mobile/routes/app_routes.dart';
+import 'package:provider/provider.dart';
+import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -10,15 +11,28 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   bool isBlowerOn = true;
+  bool isTimerRunning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load user data ketika halaman dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.getUserProfile();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20.0),
           children: [
-            _buildHeader(),
+            _buildHeader(userProvider),
             const SizedBox(height: 24),
             _buildRoomCard(
               title: 'Ruang Perebusan',
@@ -27,6 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 _buildInfoRow('Suhu', '95° C'),
                 _buildInfoRow('Timer', '02:30:15'),
+                _buildTimerControls(),
               ],
             ),
             const SizedBox(height: 16),
@@ -56,7 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(UserProvider userProvider) {
     return Row(
       children: [
         const CircleAvatar(
@@ -64,21 +79,21 @@ class _DashboardPageState extends State<DashboardPage> {
           backgroundImage: AssetImage('assets/images/icon.jpg'),
         ),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Halo, Hiruya',
-                style: TextStyle(
+                'Halo, ${userProvider.user?.name ?? 'Loading...'}',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.black87,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 2),
-              Text(
+              const SizedBox(height: 2),
+              const Text(
                 'Selamat Datang Kembali!',
                 style: TextStyle(
                   fontSize: 14,
@@ -94,8 +109,11 @@ class _DashboardPageState extends State<DashboardPage> {
             border: Border.all(color: Colors.grey.shade200, width: 1.5),
           ),
           child: IconButton(
-            icon: const Icon(Icons.notifications_none_outlined,
-                size: 24, color: Colors.black54),
+            icon: const Icon(
+              Icons.notifications_none_outlined,
+              size: 24,
+              color: Colors.black54,
+            ),
             onPressed: () {},
           ),
         ),
@@ -213,6 +231,45 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTimerControls() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0),
+      child: isTimerRunning
+          ? OutlinedButton.icon(
+              icon: const Icon(Icons.stop_rounded),
+              label: const Text('Hentikan Timer'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade700,
+                side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                minimumSize: const Size(double.infinity, 42),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                setState(() {
+                  isTimerRunning = false;
+                });
+                // TODO: Tambahkan logika untuk MENGHENTIKAN timer
+              },
+            )
+          : ElevatedButton.icon(
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Mulai Timer'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 42),
+                // Menggunakan style dari theme, tidak perlu kustomisasi berlebih
+              ),
+              onPressed: () {
+                setState(() {
+                  isTimerRunning = true;
+                });
+                // TODO: Tambahkan logika untuk MEMULAI timer
+              },
+            ),
     );
   }
 }

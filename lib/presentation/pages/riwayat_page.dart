@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'views/perebusan_page.dart';
-import 'views/fermentasi_page.dart';
-import 'views/pengeringan_page.dart';
+import 'views/riwayat_perebusan_page.dart';
+import 'views/riwayat_fermentasi_page.dart';
+import 'views/riwayat_pengeringan_page.dart';
 
-class LaporanPage extends StatefulWidget {
-  const LaporanPage({super.key});
+class RiwayatPage extends StatefulWidget {
+  const RiwayatPage({super.key});
 
   @override
-  State<LaporanPage> createState() => _LaporanPageState();
+  State<RiwayatPage> createState() => _RiwayatPageState();
 }
 
-class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStateMixin {
+class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -28,10 +28,10 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang sedikit abu-abu
       appBar: AppBar(
         title: const Text(
-          'Laporan',
+          'Riwayat', // Judul diubah
           style: TextStyle(
             fontFamily: 'Poppins',
             color: Colors.black87,
@@ -40,7 +40,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 1, // Sedikit shadow untuk memisahkan dari konten
         centerTitle: false,
         automaticallyImplyLeading: false,
         bottom: TabBar(
@@ -77,10 +77,11 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
+        // Menggunakan halaman riwayat yang baru
         children: const [
-          PerebusanPage(),
-          FermentasiPage(),
-          PengeringanPage(),
+          RiwayatPerebusanPage(),
+          RiwayatFermentasiPage(),
+          RiwayatPengeringanPage(),
         ],
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:iotmcc_mobile/presentation/pages/dashboard_page.dart';
 import 'package:iotmcc_mobile/presentation/pages/laporan_page.dart';
+import 'package:iotmcc_mobile/presentation/pages/profile_page.dart';
+import 'package:iotmcc_mobile/presentation/pages/riwayat_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -12,13 +14,11 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
-  // Daftar semua halaman utama yang akan ditampilkan
   static const List<Widget> _pages = <Widget>[
     DashboardPage(),
     LaporanPage(),
-    // Placeholder untuk Riwayat dan Profil
-    Center(child: Text('Halaman Riwayat')), 
-    Center(child: Text('Halaman Profil')),
+    RiwayatPage(),
+    ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -30,8 +30,6 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Gunakan IndexedStack agar state setiap halaman tetap terjaga
-      // saat berpindah tab.
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
@@ -40,7 +38,6 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // Pindahkan widget BottomNavigationBar ke sini
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(

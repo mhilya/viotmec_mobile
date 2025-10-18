@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-class PerebusanPage extends StatelessWidget {
+class PerebusanPage extends StatefulWidget {
   const PerebusanPage({super.key});
+
+  @override
+  State<PerebusanPage> createState() => _PerebusanPageState();
+}
+
+class _PerebusanPageState extends State<PerebusanPage> {
+  bool isTimerRunning = false;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +115,7 @@ class PerebusanPage extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text(
+          const Text(
             'STABIL',
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -142,19 +149,14 @@ class PerebusanPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Riwayat Suhu 7 Hari Terakhir',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
+          const Text(
+            'Riwayat Suhu 24 Jam Terakhir',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -165,7 +167,7 @@ class PerebusanPage extends StatelessWidget {
                   show: true,
                   drawVerticalLine: true,
                   horizontalInterval: 5,
-                  verticalInterval: 1,
+                  verticalInterval: 4,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
                       color: Colors.grey.shade200,
@@ -186,12 +188,12 @@ class PerebusanPage extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
+                      interval: 6,
                       getTitlesWidget: (value, meta) {
-                        final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
-                            days[value.toInt()],
+                            '${value.toInt().toString().padLeft(2, '0')}:00',
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 10,
@@ -206,6 +208,7 @@ class PerebusanPage extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
+                      interval: 5,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toInt()}°C',
@@ -230,41 +233,29 @@ class PerebusanPage extends StatelessWidget {
                   border: Border.all(color: Colors.grey.shade300, width: 1),
                 ),
                 minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: 20,
+                maxX: 23,
+                minY: 85,
+                maxY: 100,
                 lineBarsData: [
                   LineChartBarData(
                     spots: const [
-                      FlSpot(0, 5),
-                      FlSpot(1, 7),
-                      FlSpot(2, 6),
-                      FlSpot(3, 10),
-                      FlSpot(4, 15),
-                      FlSpot(5, 18),
-                      FlSpot(6, 17),
+                      FlSpot(0, 95), FlSpot(2, 96), FlSpot(4, 95),
+                      FlSpot(6, 97), FlSpot(8, 98), FlSpot(10, 99),
+                      FlSpot(12, 98), FlSpot(14, 96), FlSpot(16, 95),
+                      FlSpot(18, 94), FlSpot(20, 92), FlSpot(22, 90),
+                      FlSpot(23, 90),
                     ],
                     isCurved: true,
                     color: const Color(0xFF34A853),
                     barWidth: 4,
                     isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: Color(0xFF34A853),
-                        );
-                      },
-                    ),
+                    dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         colors: [
                           const Color(0xFF34A853).withOpacity(0.3),
-                          const Color(0xFF34A853).withOpacity(0.1),
+                          const Color(0xFF34A853).withOpacity(0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -285,6 +276,7 @@ class PerebusanPage extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
           return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildInfoCard(
@@ -294,6 +286,7 @@ class PerebusanPage extends StatelessWidget {
                     _infoRow('Suhu Rata-rata:', '95° C'),
                     _infoRow('Total Waktu:', '02:30:00'),
                   ],
+                  actionButton: _buildTimerControls(),
                 ),
               ),
               const SizedBox(width: 16),
@@ -302,30 +295,7 @@ class PerebusanPage extends StatelessWidget {
                   icon: Icons.power_settings_new,
                   title: 'Status Operasional',
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.green,
-                            border: Border.all(color: Colors.green.shade700, width: 3),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'AKTIF',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    )
+                    _buildOperationalStatus(),
                   ],
                 ),
               ),
@@ -341,36 +311,14 @@ class PerebusanPage extends StatelessWidget {
                   _infoRow('Suhu Rata-rata:', '95° C'),
                   _infoRow('Total Waktu:', '02:30:00'),
                 ],
+                actionButton: _buildTimerControls(),
               ),
               const SizedBox(height: 16),
               _buildInfoCard(
                 icon: Icons.power_settings_new,
                 title: 'Status Operasional',
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.green,
-                          border: Border.all(color: Colors.green.shade700, width: 3),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'AKTIF',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  )
+                  _buildOperationalStatus(),
                 ],
               ),
             ],
@@ -384,6 +332,7 @@ class PerebusanPage extends StatelessWidget {
     required IconData icon,
     required String title,
     required List<Widget> children,
+    Widget? actionButton,
   }) {
     return Container(
       width: double.infinity,
@@ -430,10 +379,77 @@ class PerebusanPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...children,
+          if (actionButton != null) ...[
+            const SizedBox(height: 16),
+            actionButton,
+          ],
         ],
       ),
     );
   }
+
+  Widget _buildTimerControls() {
+    return isTimerRunning
+        ? OutlinedButton.icon(
+            icon: const Icon(Icons.stop_rounded),
+            label: const Text('Hentikan Timer'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red.shade700,
+              side: BorderSide(color: Colors.red.shade300, width: 1.5),
+              minimumSize: const Size(double.infinity, 42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                isTimerRunning = false;
+              });
+              // TODO: Tambahkan logika untuk MENGHENTIKAN timer
+            },
+          )
+        : ElevatedButton.icon(
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Mulai Timer'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 42),
+            ),
+            onPressed: () {
+              setState(() {
+                isTimerRunning = true;
+              });
+              // TODO: Tambahkan logika untuk MEMULAI timer
+            },
+          );
+  }
+  
+  Widget _buildOperationalStatus() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.green,
+            border: Border.all(color: Colors.green.shade700, width: 3),
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Text(
+          'AKTIF',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _infoRow(String label, String value) {
     return Padding(
@@ -533,9 +549,9 @@ class PerebusanPage extends StatelessWidget {
               color: const Color(0xFF34A853).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.circle,
-              color: const Color(0xFF34A853),
+              color: Color(0xFF34A853),
               size: 8,
             ),
           ),

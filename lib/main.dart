@@ -4,27 +4,36 @@ import 'package:iotmcc_mobile/core/network/dio_client.dart';
 import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
 import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
 import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
+import 'package:iotmcc_mobile/presentation/providers/gudang_provider.dart';
+import 'package:iotmcc_mobile/presentation/providers/perebusan_provider.dart';
 import 'package:iotmcc_mobile/routes/app_routes.dart';
 import 'package:iotmcc_mobile/routes/route_generator.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
+import 'package:iotmcc_mobile/data/repositories/user_repository.dart';
+import 'package:iotmcc_mobile/data/repositories/perebusan_repository.dart';
+import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
 
 void main() {
   // Setup Dependencies
   final dio = Dio();
   final dioClient = DioClient(dio);
-  final apiService = ApiService(dioClient);
   final prefsHelper = SharedPreferencesHelper();
+  final apiService = ApiService(dioClient, prefsHelper);
   final authRepository = AuthRepository(apiService, prefsHelper);
+  final userRepository = UserRepository(apiService);
+  final perebusanRepository = PerebusanRepository(apiService);
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(authRepository),
-        ),
+        ChangeNotifierProvider(create: (context) => AuthProvider(authRepository, prefsHelper)),
+        ChangeNotifierProvider(create: (context) => UserProvider(userRepository)),
+        ChangeNotifierProvider(create: (context) => PerebusanProvider(perebusanRepository)),
+        ChangeNotifierProvider(create: (context) => GudangProvider()),
+        // ... providers lainnya
       ],
-      child: const MyApp(),
+      child: MyApp(),
     ),
   );
 }
@@ -48,6 +57,8 @@ class MyApp extends StatelessWidget {
           primary: primaryColor,
           brightness: Brightness.light,
         ),
+        splashColor: primaryColor.withOpacity(0.2),      // Warna efek riak saat disentuh
+        highlightColor: primaryColor.withOpacity(0.1),   // Warna highlight saat ditekan
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,
