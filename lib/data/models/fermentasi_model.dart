@@ -1,4 +1,4 @@
-class PerebusanData {
+class FermentasiData {
   final bool status;
   final List<double> dataSuhu;
   final List<double> dataKelembaban;
@@ -7,9 +7,10 @@ class PerebusanData {
   final String dataAvgSuhu;
   final String dataAvgKelembaban;
   final String? dataTimer;
-  final int statusRuangan;
+  // GANTI: Dibuat nullable karena API tidak selalu mengirimkannya
+  final int? statusRuangan; 
 
-  PerebusanData({
+  FermentasiData({
     required this.status,
     required this.dataSuhu,
     required this.dataKelembaban,
@@ -18,11 +19,11 @@ class PerebusanData {
     required this.dataAvgSuhu,
     required this.dataAvgKelembaban,
     this.dataTimer,
-    required this.statusRuangan,
+    this.statusRuangan, // Disesuaikan
   });
 
-  factory PerebusanData.fromJson(Map<String, dynamic> json) {
-    return PerebusanData(
+  factory FermentasiData.fromJson(Map<String, dynamic> json) {
+    return FermentasiData(
       status: json['status'] ?? false,
       dataSuhu: List<double>.from(json['dataSuhu']?.map((x) => double.tryParse(x.toString()) ?? 0.0) ?? []),
       dataKelembaban: List<double>.from(json['dataKelembaban']?.map((x) => double.tryParse(x.toString()) ?? 0.0) ?? []),
@@ -31,16 +32,15 @@ class PerebusanData {
       dataAvgSuhu: json['dataAvgSuhu']?.toString() ?? '0',
       dataAvgKelembaban: json['dataAvgKelembaban']?.toString() ?? '0',
       dataTimer: json['dataTimer']?.toString(),
-      // FIX: Gunakan helper function untuk parsing yang aman dari String ke int.
+      // GANTI: Gunakan parser yang aman, karena field ini mungkin tidak ada
       statusRuangan: _parseStatusRuangan(json['statusRuangan']),
     );
   }
 
-  // HELPER: Fungsi ini akan mengubah nilai String, int, atau null menjadi int secara aman.
-  static int _parseStatusRuangan(dynamic status) {
-    if (status == null) return 0;
+  static int? _parseStatusRuangan(dynamic status) {
+    if (status == null) return null; // Kembalikan null jika tidak ada
     if (status is int) return status;
-    if (status is String) return int.tryParse(status) ?? 0;
-    return 0;
+    if (status is String) return int.tryParse(status);
+    return null;
   }
 }
