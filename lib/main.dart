@@ -3,8 +3,10 @@
   import 'package:iotmcc_mobile/core/network/dio_client.dart';
   import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
   import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
+  import 'package:iotmcc_mobile/data/repositories/pengeringan_repository.dart';
   import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
   import 'package:iotmcc_mobile/presentation/providers/gudang_provider.dart';
+  import 'package:iotmcc_mobile/presentation/providers/pengeringan_provider.dart';
   import 'package:iotmcc_mobile/presentation/providers/perebusan_provider.dart';
   import 'package:iotmcc_mobile/presentation/providers/fermentasi_provider.dart';
   import 'package:iotmcc_mobile/routes/app_routes.dart';
@@ -28,6 +30,7 @@
     final perebusanRepository = PerebusanRepository(apiService);
     final gudangRepository = GudangRepository(apiService);
     final fermentasiRepository = FermentasiRepository(apiService);
+    final pengeringanRepository = PengeringanRepository(apiService);
 
     runApp(
       MultiProvider(
@@ -37,6 +40,7 @@
           ChangeNotifierProvider(create: (context) => PerebusanProvider(perebusanRepository)),
           ChangeNotifierProvider(create: (context) => GudangProvider(gudangRepository)),
           ChangeNotifierProvider(create: (context) => FermentasiProvider(fermentasiRepository)),
+          ChangeNotifierProvider(create: (context) => PengeringanProvider(pengeringanRepository)),
           // ... providers lainnya
         ],
         child: MyApp(),
