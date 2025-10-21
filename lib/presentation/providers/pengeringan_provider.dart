@@ -15,8 +15,8 @@ class PengeringanProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String? _errorMessage;
-  String? get errorMessage => _errorMessage;
+  String _errorMessage = '';
+  String get errorMessage => _errorMessage;
 
   bool _isTogglingBlower = false;
   bool get isTogglingBlower => _isTogglingBlower;
@@ -24,7 +24,7 @@ class PengeringanProvider extends ChangeNotifier {
   // Method untuk fetch data, memerlukan gudangId (dipanggil dari UI)
   Future<void> fetchData(String gudangId) async {
     _isLoading = true;
-    _errorMessage = null;
+    _errorMessage = 'Gudang ID tidak valid';
     notifyListeners();
 
     try {

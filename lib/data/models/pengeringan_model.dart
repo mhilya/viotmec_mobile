@@ -42,7 +42,7 @@ class PengeringanSuhuData {
   }
 }
 
-// Model untuk data dari endpoint getDataBlower
+// Model untuk data dari endpoint getDataBlower 0
 class PengeringanBlowerData {
   final int statusRuangan;
   final int statusBlower;
