@@ -31,7 +31,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Laporan',
+          'Gudang',
           style: TextStyle(
             fontFamily: 'Poppins',
             color: Colors.black87,
@@ -62,7 +62,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
           tabs: const [
             Tab(
               icon: Icon(Icons.local_fire_department_outlined, size: 20),
-              text: 'Perebusan',
+              text: 'Bleaching',
             ),
             Tab(
               icon: Icon(Icons.science_outlined, size: 20),

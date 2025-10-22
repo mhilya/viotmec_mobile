@@ -12,7 +12,8 @@ class ApiConstants {
   static const String ruanganFermentasi = '$baseUrl/ruangan-fermentasi';
   static const String ruangPengeringan = "$baseUrl/ruang-pengeringan";
   static const String gudang = '$baseUrl/gudang';
-  static String getDataSuhu(String gudangId) => '$ruanganPerebusan/data/sensor/suhu/$gudangId';
+  static String getDataSensorPerebusan(String gudangId) => '$ruanganPerebusan/data/sensor/sensor/$gudangId';
+  // static String getDataSuhu(String gudangId) => '$ruanganPerebusan/data/sensor/suhu/$gudangId';
   static String getDataSensorFermentasi(String gudangId) => '$ruanganFermentasi/data/sensor/sensor/$gudangId';
   static String getDataSuhuPengeringan(String gudangId) => '$ruangPengeringan/data/sensor/suhu/$gudangId';
   static String getDataBlower(String gudangId) => '$ruangPengeringan/data/sensor/blower/$gudangId';

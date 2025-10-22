@@ -9,7 +9,7 @@ class PerebusanRepository {
     if (gudangId == null) {
       throw Exception('Gudang ID tidak tersedia');
     }
-    final response = await _apiService.getDataSuhu(gudangId);
+    final response = await _apiService.getDataSensorPerebusan(gudangId);
     return PerebusanData.fromJson(response);
   }
 }

@@ -63,7 +63,7 @@ class _MainPageState extends State<MainPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.article_outlined),
-            label: 'Laporan',
+            label: 'Gudang',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
