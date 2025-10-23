@@ -62,7 +62,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
           tabs: const [
             Tab(
               icon: Icon(Icons.local_fire_department_outlined, size: 20),
-              text: 'Bleaching',
+              text: 'Blanching',
             ),
             Tab(
               icon: Icon(Icons.science_outlined, size: 20),

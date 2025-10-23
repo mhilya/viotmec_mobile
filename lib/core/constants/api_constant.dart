@@ -10,12 +10,22 @@ class ApiConstants {
   static const String forgotPassword = '$baseUrl/forgot-password';
   static const String ruanganPerebusan = '$baseUrl/ruangan-perebusan';
   static const String ruanganFermentasi = '$baseUrl/ruangan-fermentasi';
-  static const String ruangPengeringan = "$baseUrl/ruang-pengeringan";
+  static const String ruanganPengeringan = "$baseUrl/ruangan-pengeringan";
+  static const String riwayat = '$baseUrl/riwayat-data/api';
   static const String gudang = '$baseUrl/gudang';
-  static String getDataSensorPerebusan(String gudangId) => '$ruanganPerebusan/data/sensor/sensor/$gudangId';
+  static String getDataSensorPerebusan(String gudangId) => '$ruanganPerebusan/api/data/sensor/sensor/$gudangId';
   // static String getDataSuhu(String gudangId) => '$ruanganPerebusan/data/sensor/suhu/$gudangId';
-  static String getDataSensorFermentasi(String gudangId) => '$ruanganFermentasi/data/sensor/sensor/$gudangId';
-  static String getDataSuhuPengeringan(String gudangId) => '$ruangPengeringan/data/sensor/suhu/$gudangId';
-  static String getDataBlower(String gudangId) => '$ruangPengeringan/data/sensor/blower/$gudangId';
-  static String toggleBlower(String gudangId) => '$ruangPengeringan/toggle-blower/$gudangId';
+  static String getDataSensorFermentasi(String gudangId) => '$ruanganFermentasi/api/data/sensor/sensor/$gudangId';
+  static String getDataSensorPengeringan(String gudangId) => '$ruanganPengeringan/api/data/sensor/sensor/$gudangId';
+  static String getDataBlower(String gudangId) => '$ruanganPengeringan/data/sensor/blower/$gudangId';
+  static String toggleBlower(String gudangId) => '$ruanganPengeringan/toggle-blower/$gudangId';
+
+  static String getRuanganByGudang(String gudangId) =>
+      '$riwayat/get-ruangan/$gudangId';
+  static String getRiwayatBlanching(String ruanganId, String tgl) =>
+      '$riwayat/blanching/data/sensor/$ruanganId/$tgl';
+  static String getRiwayatFermentasi(String ruanganId, String tgl) =>
+      '$riwayat/fermentasi/data/sensor/$ruanganId/$tgl';
+  static String getRiwayatPengeringan(String ruanganId, String tgl) =>
+      '$riwayat/pengeringan/data/sensor/$ruanganId/$tgl';
 }

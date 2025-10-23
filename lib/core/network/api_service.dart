@@ -116,7 +116,7 @@ class ApiService {
   Future<Map<String, dynamic>> getDataSuhuPengeringan(String gudangId) async {
     try {
       final response =
-          await _dioClient.get(ApiConstants.getDataSuhuPengeringan(gudangId));
+          await _dioClient.get(ApiConstants.getDataSensorPengeringan(gudangId));
       return response.data;
     } on DioException catch (e) {
       // Menggunakan helper
@@ -145,5 +145,28 @@ class ApiService {
       "message": "Status blower berhasil diubah (Dummy)",
       "statusBlower": 0 // Kembalikan status baru (dummy)
     };
+  }
+
+    Future<List<dynamic>> getRuanganByGudang(String gudangId) async {
+    try {
+      final response =
+          await _dioClient.get(ApiConstants.getRuanganByGudang(gudangId));
+      if (response.data is List) {
+        return response.data;
+      }
+      return [];
+    } on DioException catch (e) {
+      throw _handleDioError(e, 'Gagal memuat data ruangan');
+    }
+  }
+
+  /// Mengambil data riwayat sensor (generik)
+  Future<Map<String, dynamic>> getRiwayatData(String apiUrl) async {
+    try {
+      final response = await _dioClient.get(apiUrl);
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e, 'Gagal memuat data riwayat');
+    }
   }
 }

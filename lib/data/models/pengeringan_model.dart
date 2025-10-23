@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-// Model untuk menampung semua data di halaman pengeringan
 class PengeringanData {
   final PengeringanSuhuData suhuData;
   final PengeringanBlowerData blowerData;
@@ -11,8 +8,6 @@ class PengeringanData {
   });
 }
 
-
-// Model untuk data dari endpoint getDataSuhu
 class PengeringanSuhuData {
   final List<dynamic> dataSuhu;
   final List<dynamic> dataKelembaban;
@@ -30,19 +25,68 @@ class PengeringanSuhuData {
     required this.dataAvgKelembaban,
   });
 
+  // --- PERBAIKAN DI BAWAH INI ---
+
   factory PengeringanSuhuData.fromJson(Map<String, dynamic> json) {
+    // Ambil list sensor dan waktu dari root JSON, pastikan ada
+    final List<dynamic> dataSensor = _parseList(json['dataSensor']);
+    final List<dynamic> dataWaktu = _parseList(json['dataWaktuSensor']);
+
+    // Cari data spesifik menggunakan helper
+    // Kita asumsikan 'dataSuhu' di model merujuk ke 'suhu_1' dari API
+    final suhuData = _findSensorData(dataSensor, 'suhu_1'); 
+    
+    // Kita asumsikan 'dataKelembaban' di model merujuk ke 'kelembaban_1' dari API
+    final kelembabanData = _findSensorData(dataSensor, 'kelembaban_1');
+    
+    // Cari data waktu yang sesuai
+    final suhuWaktu = _findSensorData(dataWaktu, 'suhu_1');
+    final kelembabanWaktu = _findSensorData(dataWaktu, 'kelembaban_1');
+
+    // (Catatan: Ini akan mengabaikan suhu_2 dan kelembaban_2 untuk saat ini,
+    // karena model Anda hanya punya properti untuk satu set data)
+
     return PengeringanSuhuData(
-      dataSuhu: json['dataSuhu'] as List<dynamic>,
-      dataKelembaban: json['dataKelembaban'] as List<dynamic>,
-      dataWaktuSuhu: json['dataWaktuSuhu'] as List<dynamic>,
-      dataWaktuKelembaban: json['dataWaktuKelembaban'] as List<dynamic>,
-      dataAvgSuhu: json['dataAvgSuhu'].toString(),
-      dataAvgKelembaban: json['dataAvgKelembaban'].toString(),
+      // Ambil 'value' dari data yang ditemukan, atau list kosong jika null
+      dataSuhu: _parseList(suhuData?['value']),
+      dataKelembaban: _parseList(kelembabanData?['value']),
+      
+      // Ambil 'value' dari waktu yang ditemukan
+      dataWaktuSuhu: _parseList(suhuWaktu?['value']),
+      dataWaktuKelembaban: _parseList(kelembabanWaktu?['value']),
+      
+      // Ambil 'avg' dari data yang ditemukan, atau "0" jika null
+      dataAvgSuhu: suhuData?['avg']?.toString() ?? "0",
+      dataAvgKelembaban: kelembabanData?['avg']?.toString() ?? "0",
     );
   }
+
+  // Helper method untuk parsing list dengan aman
+  static List<dynamic> _parseList(dynamic data) {
+    if (data is List) {
+      return data;
+    }
+    return [];
+  }
+
+  // HELPER BARU: untuk mencari data di dalam list JSON
+  static Map<String, dynamic>? _findSensorData(List<dynamic> list, String flag) {
+    try {
+      // Cari item yang merupakan Map DAN punya flag_sensor yang cocok
+      return list.firstWhere(
+        (item) => item is Map<String, dynamic> && item['flag_sensor'] == flag,
+        orElse: () => null, // Kembalikan null jika tidak ditemukan
+      );
+    } catch (e) {
+      // Tangkap error jika list tidak valid
+      return null;
+    }
+  }
+
+  // --- AKHIR DARI PERBAIKAN ---
 }
 
-// Model untuk data dari endpoint getDataBlower 0
+// Model untuk blower tetap sama (dummy)
 class PengeringanBlowerData {
   final int statusRuangan;
   final int statusBlower;
@@ -60,12 +104,19 @@ class PengeringanBlowerData {
 
   factory PengeringanBlowerData.fromJson(Map<String, dynamic> json) {
     return PengeringanBlowerData(
-      statusRuangan: json['statusRuangan'] as int,
-      statusBlower: json['statusBlower'] as int,
-      durasiAktif: json['durasiAktif'] as int,
-      dataBlower: json['dataBlower'] as List<dynamic>,
-      dataWaktuBlower: json['dataWaktuBlower'] as List<dynamic>,
+      statusRuangan: _parseInt(json['statusRuangan']),
+      statusBlower: _parseInt(json['statusBlower']),
+      durasiAktif: _parseInt(json['durasiAktif']),
+      dataBlower: json['dataBlower'] is List ? json['dataBlower'] : [],
+      dataWaktuBlower:
+          json['dataWaktuBlower'] is List ? json['dataWaktuBlower'] : [],
     );
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   PengeringanBlowerData copyWith({
