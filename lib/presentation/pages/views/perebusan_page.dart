@@ -44,17 +44,23 @@ class _PerebusanPageState extends State<PerebusanPage> {
           });
         }
 
+        // Ekstraksi data sensor suhu
         final SensorData? suhuSensor = data?.dataSensor
             .where((s) => s.flagSensor.startsWith('suhu'))
             .firstOrNull;
 
+        // Ekstraksi data waktu untuk sensor suhu yang sesuai
         final WaktuSensorData? suhuWaktu = data?.dataWaktuSensor
             .where((w) => w.flagSensor == suhuSensor?.flagSensor)
             .firstOrNull;
 
+        // Siapkan list data untuk dioper ke widget
         final List<double> suhuValues = suhuSensor?.value ?? [];
         final List<String> waktuValues = suhuWaktu?.value ?? [];
         final String avgSuhu = (suhuSensor?.avg ?? 0).toStringAsFixed(1);
+        
+        // <-- 1. AMBIL DATA AVG PAGI DI SINI
+        final String avgSuhuPagi = (suhuSensor?.avgPagi ?? 0).toStringAsFixed(1);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -70,10 +76,13 @@ class _PerebusanPageState extends State<PerebusanPage> {
                 if (perebusanProvider.errorMessage.isNotEmpty && data == null)
                   _buildErrorWidget(perebusanProvider),
                 if (data != null) ...[
-                  // PERBAIKAN: Oper data yang sudah diekstrak ke widget
+                  // Oper data yang sudah diekstrak ke widget
                   _buildChartCard(data, suhuValues, waktuValues),
                   const SizedBox(height: 20),
-                  _buildInfoCards(data, avgSuhu),
+                  
+                  // <-- 2. PASS DATA AVG PAGI KE WIDGET INFO CARD
+                  _buildInfoCards(data, avgSuhu, avgSuhuPagi),
+                  
                   const SizedBox(height: 20),
                   _buildEventLogCard(data, suhuValues, waktuValues),
                 ],
@@ -305,7 +314,7 @@ class _PerebusanPageState extends State<PerebusanPage> {
     );
   }
 
-  // PERBAIKAN: Terima data suhu/waktu yang sudah diekstrak
+  // Terima data suhu/waktu yang sudah diekstrak
   Widget _buildChartCard(
     PerebusanData data,
     List<double> suhuData,
@@ -332,7 +341,7 @@ class _PerebusanPageState extends State<PerebusanPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Riwayat Suhu 30 Data Terakhir',
+            'Riwayat Suhu 24 Jam Terakhir', // Diubah dari 30 data
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
@@ -340,7 +349,16 @@ class _PerebusanPageState extends State<PerebusanPage> {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
+          Text(
+            '${suhuData.length} data point', // Menampilkan jumlah data
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.grey.shade600,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             height: 200,
             child: LineChart(
@@ -348,8 +366,9 @@ class _PerebusanPageState extends State<PerebusanPage> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: true,
-                  horizontalInterval: 5,
-                  verticalInterval: 4,
+                  horizontalInterval: 10, // Disesuaikan untuk suhu
+                  verticalInterval: _calculateTimeInterval(waktuData) /
+                      2, // Disesuaikan untuk waktu
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
                       color: Colors.grey.shade200,
@@ -370,19 +389,25 @@ class _PerebusanPageState extends State<PerebusanPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      interval: 6,
+                      // PERBAIKAN: Gunakan interval dinamis untuk waktu
+                      interval: _calculateTimeInterval(waktuData),
                       getTitlesWidget: (value, meta) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            '${value.toInt()}',
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 10,
-                              color: Colors.grey,
+                        // PERBAIKAN: Tampilkan Waktu (HH:mm)
+                        if (value >= 0 && value < waktuData.length) {
+                          final time = waktuData[value.toInt()];
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              _formatTimeForChart(time),
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
+                        return const Text('');
                       },
                     ),
                   ),
@@ -390,7 +415,8 @@ class _PerebusanPageState extends State<PerebusanPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
-                      interval: 5,
+                      // Disesuaikan untuk range suhu perebusan
+                      interval: 10,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toInt()}°C',
@@ -415,18 +441,19 @@ class _PerebusanPageState extends State<PerebusanPage> {
                   border: Border.all(color: Colors.grey.shade300, width: 1),
                 ),
                 minX: 0,
-                // PERBAIKAN: Gunakan parameter suhuData
+                // Gunakan parameter suhuData
                 maxX: suhuData.isNotEmpty
                     ? (suhuData.length - 1).toDouble()
                     : 0,
-                minY: suhuData.isNotEmpty ? _getMinValue(suhuData) - 2 : 0,
-                maxY: suhuData.isNotEmpty ? _getMaxValue(suhuData) + 2 : 100,
+                // Sesuaikan Min/Max Y untuk perebusan (misal 0 - 110)
+                minY: 0,
+                maxY: 110,
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
                     color: const Color(0xFF34A853),
-                    barWidth: 4,
+                    barWidth: 3, // Dibuat lebih tipis
                     isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
@@ -471,8 +498,9 @@ class _PerebusanPageState extends State<PerebusanPage> {
     return data.reduce((a, b) => a > b ? a : b);
   }
 
-  // PERBAIKAN: Terima avgSuhu yang sudah diekstrak
-  Widget _buildInfoCards(PerebusanData data, String avgSuhu) {
+  // <-- 3. UPDATE SIGNATURE UNTUK MENERIMA avgSuhuPagi
+  Widget _buildInfoCards(
+      PerebusanData data, String avgSuhu, String avgSuhuPagi) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
@@ -484,9 +512,12 @@ class _PerebusanPageState extends State<PerebusanPage> {
                   icon: Icons.thermostat,
                   title: 'Parameter Utama',
                   children: [
-                    // PERBAIKAN: Gunakan parameter avgSuhu
-                    _infoRow('Suhu Rata-rata:', '$avgSuhu° C'),
-                    // CHANGE: Kelembaban disembunyikan dan Timer ditampilkan secara default
+                    // Gunakan parameter avgSuhu
+                    // _infoRow('Suhu Rata-rata (24j):', '$avgSuhu° C'),
+                    
+                    // <-- 4. TAMPILKAN DATA BARU DI SINI
+                    _infoRow('Suhu Rata-rata:', '$avgSuhuPagi° C'),
+                    
                     _infoRow('Timer:', '00:00:00'),
                   ],
                   actionButton: _buildTimerControls(data),
@@ -509,9 +540,12 @@ class _PerebusanPageState extends State<PerebusanPage> {
                 icon: Icons.thermostat,
                 title: 'Parameter Utama',
                 children: [
-                  // PERBAIKAN: Gunakan parameter avgSuhu
-                  _infoRow('Suhu Rata-rata:', '$avgSuhu° C'),
-                  // CHANGE: Kelembaban disembunyikan dan Timer ditampilkan secara default
+                  // Gunakan parameter avgSuhu
+                  _infoRow('Suhu Rata-rata (24j):', '$avgSuhu° C'),
+                  
+                  // <-- 5. TAMPILKAN DATA BARU DI SINI JUGA (untuk layout mobile)
+                  _infoRow('Rata-rata Pagi (7-10):', '$avgSuhuPagi° C'),
+
                   _infoRow('Timer:', '00:00:00'),
                 ],
                 actionButton: _buildTimerControls(data),
@@ -613,7 +647,12 @@ class _PerebusanPageState extends State<PerebusanPage> {
             icon: const Icon(Icons.play_arrow_rounded),
             label: const Text('Mulai Timer'),
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF34A853),
+              foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: data.statusRuangan == 1
                 ? () {
@@ -685,7 +724,7 @@ class _PerebusanPageState extends State<PerebusanPage> {
     );
   }
 
-  // PERBAIKAN: Terima data suhu/waktu yang sudah diekstrak
+  // Terima data suhu/waktu yang sudah diekstrak
   Widget _buildEventLogCard(
     PerebusanData data,
     List<double> suhuData,
@@ -725,22 +764,21 @@ class _PerebusanPageState extends State<PerebusanPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // PERBAIKAN: Oper data yang sudah diekstrak
+          // Oper data yang sudah diekstrak
           ..._buildSensorDataItems(data, suhuData, waktuData),
         ],
       ),
     );
   }
 
-  // PERBAIKAN: Terima data suhu/waktu yang sudah diekstrak
+  // Terima data suhu/waktu yang sudah diekstrak
   List<Widget> _buildSensorDataItems(
     PerebusanData data,
     List<double> suhuData,
     List<String> waktuData,
   ) {
-    // PERBAIKAN: Cek list yang baru
+    // Cek list yang baru
     if (suhuData.isEmpty) {
-      // Cukup cek suhu saja
       return [
         Center(
           child: Text(
@@ -756,15 +794,13 @@ class _PerebusanPageState extends State<PerebusanPage> {
     }
 
     List<Widget> items = [];
-    // PERBAIKAN: Gunakan list yang baru
+    // Gunakan list yang baru
     int itemCount = suhuData.length;
 
+    // Tampilkan 4 data terbaru
     for (int i = 0; i < itemCount && i < 4; i++) {
       final suhu = i < suhuData.length ? suhuData[i] : 0.0;
       final waktu = i < waktuData.length ? waktuData[i] : '--:--:--';
-
-      // Data kelembaban tidak perlu diambil lagi karena tidak akan ditampilkan
-      // final num kelembaban = i < data.dataKelembaban.length ? data.dataKelembaban[i] : 0;
 
       items.add(_sensorDataRow(suhu, waktu));
       if (i < itemCount - 1 && i < 3) {
@@ -775,7 +811,7 @@ class _PerebusanPageState extends State<PerebusanPage> {
     return items;
   }
 
-  // CHANGE: Widget ini sekarang hanya menerima suhu dan waktu
+  // Widget ini sekarang hanya menerima suhu dan waktu
   Widget _sensorDataRow(double suhu, String waktu) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -805,7 +841,7 @@ class _PerebusanPageState extends State<PerebusanPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // CHANGE: Row di sini tidak lagi memerlukan spaceBetween
+                // Row di sini tidak lagi memerlukan spaceBetween
                 Row(
                   children: [
                     Text(
@@ -817,7 +853,6 @@ class _PerebusanPageState extends State<PerebusanPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    // Teks kelembaban dihilangkan
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -846,5 +881,29 @@ class _PerebusanPageState extends State<PerebusanPage> {
         ],
       ),
     );
+  }
+
+  // --- Helper Methods untuk Grafik ---
+
+  String _formatTimeForChart(String time) {
+    try {
+      final parts = time.split(':');
+      if (parts.length == 3) {
+        return '${parts[0]}:${parts[1]}'; // Format: HH:mm
+      }
+    } catch (e) {
+      print('Error formatting time: $time');
+    }
+    return time;
+  }
+
+  double _calculateTimeInterval(List<String> waktu) {
+    // Menghitung interval agar tidak terlalu padat
+    if (waktu.length <= 6) return 1; // Tampilkan setiap data
+    if (waktu.length <= 12) return 2; // Tampilkan setiap 2 data
+    if (waktu.length <= 60) return 10; // Tampilkan setiap 10 data (jika 1 jam)
+    // Untuk 288 data (24 jam)
+    if (waktu.length <= 288) return 48; // Tampilkan sekitar 6 label (288 / 6)
+    return (waktu.length / 6).ceilToDouble(); // Default: 6 label
   }
 }

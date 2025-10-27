@@ -62,7 +62,7 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
           tabs: const [
             Tab(
               icon: Icon(Icons.local_fire_department_outlined, size: 20),
-              text: 'Blaching',
+              text: 'Blanching',
             ),
             Tab(
               icon: Icon(Icons.science_outlined, size: 20),

@@ -15,6 +15,7 @@ class PengeringanSuhuData {
   final List<dynamic> dataWaktuKelembaban;
   final String dataAvgSuhu;
   final String dataAvgKelembaban;
+  final int statusRuangan;
 
   PengeringanSuhuData({
     required this.dataSuhu,
@@ -23,41 +24,39 @@ class PengeringanSuhuData {
     required this.dataWaktuKelembaban,
     required this.dataAvgSuhu,
     required this.dataAvgKelembaban,
+    required this.statusRuangan,
   });
 
   // --- PERBAIKAN DI BAWAH INI ---
 
   factory PengeringanSuhuData.fromJson(Map<String, dynamic> json) {
-    // Ambil list sensor dan waktu dari root JSON, pastikan ada
-    final List<dynamic> dataSensor = _parseList(json['dataSensor']);
-    final List<dynamic> dataWaktu = _parseList(json['dataWaktuSensor']);
-
-    // Cari data spesifik menggunakan helper
-    // Kita asumsikan 'dataSuhu' di model merujuk ke 'suhu_1' dari API
-    final suhuData = _findSensorData(dataSensor, 'suhu_1'); 
+    // 1. Ambil data rata-rata global (dari key 'avg')
+    final Map<String, dynamic> avg = json['avg'] ?? {};
     
-    // Kita asumsikan 'dataKelembaban' di model merujuk ke 'kelembaban_1' dari API
-    final kelembabanData = _findSensorData(dataSensor, 'kelembaban_1');
+    // 2. Ambil data rata-rata per titik (dari key 'averaged_data')
+    final Map<String, dynamic> averagedData = json['averaged_data'] ?? {};
     
-    // Cari data waktu yang sesuai
-    final suhuWaktu = _findSensorData(dataWaktu, 'suhu_1');
-    final kelembabanWaktu = _findSensorData(dataWaktu, 'kelembaban_1');
-
-    // (Catatan: Ini akan mengabaikan suhu_2 dan kelembaban_2 untuk saat ini,
-    // karena model Anda hanya punya properti untuk satu set data)
+    // 3. Ekstrak data suhu dari 'averaged_data'
+    final Map<String, dynamic> suhuDataMap = averagedData['suhu'] ?? {};
+    
+    // 4. Ekstrak data kelembaban dari 'averaged_data'
+    final Map<String, dynamic> kelembabanDataMap = averagedData['kelembaban'] ?? {};
 
     return PengeringanSuhuData(
-      // Ambil 'value' dari data yang ditemukan, atau list kosong jika null
-      dataSuhu: _parseList(suhuData?['value']),
-      dataKelembaban: _parseList(kelembabanData?['value']),
+      // Ambil list 'values' dan 'waktu' dari map suhu
+      dataSuhu: _parseList(suhuDataMap['values']),
+      dataWaktuSuhu: _parseList(suhuDataMap['waktu']),
       
-      // Ambil 'value' dari waktu yang ditemukan
-      dataWaktuSuhu: _parseList(suhuWaktu?['value']),
-      dataWaktuKelembaban: _parseList(kelembabanWaktu?['value']),
+      // Ambil list 'values' dan 'waktu' dari map kelembaban
+      dataKelembaban: _parseList(kelembabanDataMap['values']),
+      dataWaktuKelembaban: _parseList(kelembabanDataMap['waktu']),
       
-      // Ambil 'avg' dari data yang ditemukan, atau "0" jika null
-      dataAvgSuhu: suhuData?['avg']?.toString() ?? "0",
-      dataAvgKelembaban: kelembabanData?['avg']?.toString() ?? "0",
+      // Ambil 'avg' dari map avg
+      dataAvgSuhu: avg['suhu']?.toString() ?? "0",
+      dataAvgKelembaban: avg['kelembaban']?.toString() ?? "0",
+
+      // Ambil status ruangan dari root json
+      statusRuangan: _parseInt(json['statusRuangan']),
     );
   }
 
@@ -69,24 +68,17 @@ class PengeringanSuhuData {
     return [];
   }
 
-  // HELPER BARU: untuk mencari data di dalam list JSON
-  static Map<String, dynamic>? _findSensorData(List<dynamic> list, String flag) {
-    try {
-      // Cari item yang merupakan Map DAN punya flag_sensor yang cocok
-      return list.firstWhere(
-        (item) => item is Map<String, dynamic> && item['flag_sensor'] == flag,
-        orElse: () => null, // Kembalikan null jika tidak ditemukan
-      );
-    } catch (e) {
-      // Tangkap error jika list tidak valid
-      return null;
-    }
+  // Helper method untuk parsing int dengan aman
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   // --- AKHIR DARI PERBAIKAN ---
 }
 
-// Model untuk blower tetap sama (dummy)
+// Model untuk blower tetap sama
 class PengeringanBlowerData {
   final int statusRuangan;
   final int statusBlower;

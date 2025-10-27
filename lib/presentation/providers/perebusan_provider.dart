@@ -34,6 +34,14 @@ class PerebusanProvider extends ChangeNotifier {
   String get dataAvgKelembaban => 
       (_data?.getSensorByFlag('kelembaban')?.avg.toStringAsFixed(1)) ?? '0';
 
+  // <-- TAMBAHKAN GETTER BARU UNTUK AVG PAGI
+  String get dataAvgSuhuPagi => 
+      (_data?.getSensorByFlag('suhu')?.avgPagi.toStringAsFixed(1)) ?? '0';
+  
+  String get dataAvgKelembabanPagi => 
+      (_data?.getSensorByFlag('kelembaban')?.avgPagi.toStringAsFixed(1)) ?? '0';
+  // <-- SELESAI PENAMBAHAN GETTER
+
   Future<void> fetchData(String? gudangId) async {
     if (gudangId == null) {
       _errorMessage = 'Gudang ID tidak tersedia';
