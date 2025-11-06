@@ -6,7 +6,7 @@ class RiwayatPerebusanProvider extends BaseRiwayatProvider {
 
   @override
   String get namaRuanganIdentifier =>
-      "Blaching"; // Sesuaikan dengan nama di DB
+      "Ruangan Perebusan"; // Sesuaikan dengan nama di DB
 
   @override
   TipeRuanganRiwayat get tipeRuangan => TipeRuanganRiwayat.perebusan;

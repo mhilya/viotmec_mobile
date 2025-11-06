@@ -6,7 +6,7 @@ class RiwayatFermentasiProvider extends BaseRiwayatProvider {
 
   @override
   String get namaRuanganIdentifier =>
-      "Fermentasi"; // Sesuaikan dengan nama di DB
+      "Ruangan Fermentasi"; // Sesuaikan dengan nama di DB
 
   @override
   TipeRuanganRiwayat get tipeRuangan => TipeRuanganRiwayat.fermentasi;

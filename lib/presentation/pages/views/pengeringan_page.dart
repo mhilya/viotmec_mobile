@@ -668,7 +668,7 @@ class _PengeringanPageState extends State<PengeringanPage> {
               mainAxisSpacing: 16,
               childAspectRatio: 2.5,
             ),
-            itemCount: 8,
+            itemCount: 2,
             itemBuilder: (context, index) {
               int blowerNumber = index + 1;
               bool isBlowerOn = _getBlowerStatus(blowerNumber);

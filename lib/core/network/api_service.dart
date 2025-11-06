@@ -147,12 +147,12 @@ class ApiService {
     };
   }
 
-    Future<List<dynamic>> getRuanganByGudang(String gudangId) async {
+  Future<List<dynamic>> getRuanganByGudang(String gudangId) async {
     try {
-      final response =
-          await _dioClient.get(ApiConstants.getRuanganByGudang(gudangId));
-      if (response.data is List) {
-        return response.data;
+      final response = await _dioClient.get(ApiConstants.getRuanganByGudang(gudangId));
+      // SESUAIKAN: Response Laravel memiliki struktur {status: true, data: []}
+      if (response.data != null && response.data['status'] == true && response.data['data'] is List) {
+        return response.data['data'];
       }
       return [];
     } on DioException catch (e) {
@@ -160,10 +160,12 @@ class ApiService {
     }
   }
 
-  /// Mengambil data riwayat sensor (generik)
-  Future<Map<String, dynamic>> getRiwayatData(String apiUrl) async {
+  /// Mengambil data riwayat sensor berdasarkan ruangan dan tanggal
+  Future<Map<String, dynamic>> getRiwayatSensor(String ruanganId, String tanggal) async {
     try {
-      final response = await _dioClient.get(apiUrl);
+      final response = await _dioClient.get(ApiConstants.getRiwayatSensor(ruanganId, tanggal));
+      // SESUAIKAN: Response Laravel memiliki struktur:
+      // {status: true, dataSensor: [], namaRuangan: string}
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e, 'Gagal memuat data riwayat');

@@ -28,19 +28,35 @@ class RiwayatRepository {
     required String ruanganId,
     required String tgl, // Format YYYY-MM-DD
   }) async {
-    String apiUrl;
-    switch (tipe) {
-      case TipeRuanganRiwayat.perebusan:
-        apiUrl = ApiConstants.getRiwayatBlanching(ruanganId, tgl);
-        break;
-      case TipeRuanganRiwayat.fermentasi:
-        apiUrl = ApiConstants.getRiwayatFermentasi(ruanganId, tgl);
-        break;
-      case TipeRuanganRiwayat.pengeringan:
-        apiUrl = ApiConstants.getRiwayatPengeringan(ruanganId, tgl);
-        break;
-    }
-    final response = await _apiService.getRiwayatData(apiUrl);
+    // GUNAKAN METHOD BARU YANG SUDAH DISESUAIKAN
+    final response = await _apiService.getRiwayatSensor(ruanganId, tgl);
+    return RiwayatData.fromJson(response);
+  }
+
+  /// Alternative: Jika ingin tetap membedakan berdasarkan tipe ruangan
+  /// untuk keperluan logging atau analytics
+  Future<RiwayatData> getRiwayatDataWithType({
+    required TipeRuanganRiwayat tipe,
+    required String ruanganId,
+    required String tgl,
+  }) async {
+    // GUNAKAN METHOD BARU YANG SUDAH DISESUAIKAN
+    final response = await _apiService.getRiwayatSensor(ruanganId, tgl);
+    
+    final riwayatData = RiwayatData.fromJson(response);
+    // Tambahkan informasi tipe ruangan ke response jika diperlukan
+    // riwayatData.tipeRuangan = tipe; // Jika model mendukung properti ini
+    
+    return riwayatData;
+  }
+
+  /// Method tambahan untuk mendapatkan data riwayat tanpa tipe ruangan
+  /// (lebih sederhana jika tipe ruangan tidak diperlukan)
+  Future<RiwayatData> getRiwayatByRuangan({
+    required String ruanganId,
+    required String tanggal,
+  }) async {
+    final response = await _apiService.getRiwayatSensor(ruanganId, tanggal);
     return RiwayatData.fromJson(response);
   }
 }

@@ -6,7 +6,7 @@ class RiwayatPengeringanProvider extends BaseRiwayatProvider {
 
   @override
   String get namaRuanganIdentifier =>
-      "Pengeringan"; // Sesuaikan dengan nama di DB
+      "Ruangan Pengeringan"; // Sesuaikan dengan nama di DB
 
   @override
   TipeRuanganRiwayat get tipeRuangan => TipeRuanganRiwayat.pengeringan;
