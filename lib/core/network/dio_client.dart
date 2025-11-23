@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:iotmcc_mobile/core/constants/api_constant.dart';
+import 'package:viotmec_mobile/core/constants/api_constant.dart';
 
 class DioClient {
   final Dio _dio;
@@ -19,6 +19,8 @@ class DioClient {
       ));
   }
 
+  Dio get dio => _dio;
+
   Future<Response> post(
     String url, {
     data,
@@ -36,6 +38,27 @@ class DioClient {
         options: options,
         cancelToken: cancelToken,
         onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Response> get(
+    String url, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    try {
+      final Response response = await _dio.get(
+        url,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
       );
       return response;

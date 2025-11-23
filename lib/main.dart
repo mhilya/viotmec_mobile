@@ -1,27 +1,96 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/core/network/api_service.dart';
-import 'package:iotmcc_mobile/core/network/dio_client.dart';
-import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
-import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
-import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
-import 'package:iotmcc_mobile/routes/app_routes.dart';
-import 'package:iotmcc_mobile/routes/route_generator.dart';
+import 'package:viotmec_mobile/core/network/api_service.dart';
+import 'package:viotmec_mobile/core/network/dio_client.dart';
+import 'package:viotmec_mobile/core/utils/shared_preferences.dart';
+import 'package:viotmec_mobile/data/repositories/auth_repository.dart';
+import 'package:viotmec_mobile/data/repositories/blanching_repository.dart';
+import 'package:viotmec_mobile/data/repositories/pengeringan_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/auth_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/fermentasi_provider.dart';
+import 'package:viotmec_mobile/routes/app_routes.dart';
+import 'package:viotmec_mobile/routes/route_generator.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
+import 'package:viotmec_mobile/data/repositories/user_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
+import 'package:viotmec_mobile/data/repositories/gudang_repository.dart';
+import 'package:viotmec_mobile/data/repositories/fermentasi_repository.dart';
+import 'package:viotmec_mobile/data/repositories/riwayat_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_perebusan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_fermentasi_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_pengeringan_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-void main() {
-  // Setup Dependencies
+// Handler Notifikasi Background
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   final dio = Dio();
   final dioClient = DioClient(dio);
-  final apiService = ApiService(dioClient);
   final prefsHelper = SharedPreferencesHelper();
+  final apiService = ApiService(dioClient, prefsHelper);
   final authRepository = AuthRepository(apiService, prefsHelper);
+  final userRepository = UserRepository(apiService);
+  final blanchingRepository = BlanchingRepository(apiService);
+  final gudangRepository = GudangRepository(apiService);
+  final fermentasiRepository = FermentasiRepository(apiService);
+  final pengeringanRepository = PengeringanRepository(apiService);
+  final riwayatRepository = RiwayatRepository(apiService);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(authRepository),
+          create: (context) => AuthProvider(authRepository, prefsHelper),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => UserProvider(userRepository),
+        ),
+        ChangeNotifierProvider(
+          // create: (context) => PerebusanProvider(perebusanRepository),
+          create: (context) => BlanchingProvider(blanchingRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => GudangProvider(gudangRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => FermentasiProvider(fermentasiRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PengeringanProvider(pengeringanRepository),
+        ),
+        ChangeNotifierProxyProvider<GudangProvider, RiwayatPerebusanProvider>(
+          create: (context) => RiwayatPerebusanProvider(riwayatRepository),
+          update: (context, gudangProvider, riwayatProvider) {
+            riwayatProvider?.updateGudang(gudangProvider);
+            return riwayatProvider!;
+          },
+        ),
+        ChangeNotifierProxyProvider<GudangProvider, RiwayatFermentasiProvider>(
+          create: (context) => RiwayatFermentasiProvider(riwayatRepository),
+          update: (context, gudangProvider, riwayatProvider) {
+            riwayatProvider?.updateGudang(gudangProvider);
+            return riwayatProvider!;
+          },
+        ),
+        ChangeNotifierProxyProvider<GudangProvider, RiwayatPengeringanProvider>(
+          create: (context) => RiwayatPengeringanProvider(riwayatRepository),
+          update: (context, gudangProvider, riwayatProvider) {
+            riwayatProvider?.updateGudang(gudangProvider);
+            return riwayatProvider!;
+          },
         ),
       ],
       child: const MyApp(),
@@ -48,6 +117,8 @@ class MyApp extends StatelessWidget {
           primary: primaryColor,
           brightness: Brightness.light,
         ),
+        splashColor: primaryColor.withOpacity(0.2),
+        highlightColor: primaryColor.withOpacity(0.1),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -71,7 +142,10 @@ class MyApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey.shade200),
@@ -107,8 +181,15 @@ class MyApp extends StatelessWidget {
           unselectedItemColor: Colors.grey.shade400,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+          ),
         ),
       ),
       initialRoute: AppRoutes.splash,
