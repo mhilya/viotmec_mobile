@@ -25,17 +25,18 @@ import 'package:viotmec_mobile/presentation/providers/riwayat_pengeringan_provid
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+// Handler Notifikasi Background
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print('Handling a background message: ${message.messageId}');
+  print("Handling a background message: ${message.messageId}");
 }
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  // Setup Dependencies
+
   final dio = Dio();
   final dioClient = DioClient(dio);
   final prefsHelper = SharedPreferencesHelper();
@@ -43,7 +44,6 @@ void main() {
   final authRepository = AuthRepository(apiService, prefsHelper);
   final userRepository = UserRepository(apiService);
   final blanchingRepository = BlanchingRepository(apiService);
-  // final perebusanRepository = PerebusanRepository(apiService);
   final gudangRepository = GudangRepository(apiService);
   final fermentasiRepository = FermentasiRepository(apiService);
   final pengeringanRepository = PengeringanRepository(apiService);
@@ -74,7 +74,6 @@ void main() {
         ChangeNotifierProxyProvider<GudangProvider, RiwayatPerebusanProvider>(
           create: (context) => RiwayatPerebusanProvider(riwayatRepository),
           update: (context, gudangProvider, riwayatProvider) {
-            // Panggil method updateGudang setiap kali GudangProvider berubah
             riwayatProvider?.updateGudang(gudangProvider);
             return riwayatProvider!;
           },
@@ -93,9 +92,8 @@ void main() {
             return riwayatProvider!;
           },
         ),
-        // ... providers lainnya
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -119,12 +117,8 @@ class MyApp extends StatelessWidget {
           primary: primaryColor,
           brightness: Brightness.light,
         ),
-        splashColor: primaryColor.withOpacity(
-          0.2,
-        ), // Warna efek riak saat disentuh
-        highlightColor: primaryColor.withOpacity(
-          0.1,
-        ), // Warna highlight saat ditekan
+        splashColor: primaryColor.withOpacity(0.2),
+        highlightColor: primaryColor.withOpacity(0.1),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,

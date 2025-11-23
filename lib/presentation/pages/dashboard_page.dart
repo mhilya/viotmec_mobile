@@ -5,6 +5,7 @@ import 'package:viotmec_mobile/presentation/providers/fermentasi_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
+import 'package:viotmec_mobile/core/network/fcm_service.dart';
 // import 'package:viotmec_mobile/presentation/providers/perebusan_provider.dart';
 // import 'package:provider/provider.dart';
 // import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
@@ -31,6 +32,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // (setelah frame pertama selesai di-render)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
+      FcmService().initNotifications();
     });
   }
 

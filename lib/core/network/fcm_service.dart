@@ -1,11 +1,12 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dio/dio.dart';
 import '../constants/api_constant.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/shared_preferences.dart';
 
 class FcmService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final Dio _dio = Dio();
+  final SharedPreferencesHelper _prefsHelper = SharedPreferencesHelper();
   
   static final FcmService _instance = FcmService._internal();
   factory FcmService() => _instance;
@@ -13,7 +14,6 @@ class FcmService {
 
   Future<void> initNotifications() async {
     try {
-      // 1. Request Permission (Wajib buat Android 13+)
       NotificationSettings settings = await _firebaseMessaging.requestPermission(
         alert: true,
         announcement: false,
@@ -24,18 +24,17 @@ class FcmService {
         sound: true,
       );
 
-      print('Notification permission status: ${settings.authorizationStatus}');
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        String? token = await _firebaseMessaging.getToken();
+        print('FCM Token: $token');
 
-      // 2. Ambil Token
-      String? token = await _firebaseMessaging.getToken();
-      print('FCM Token: $token');
+        if (token != null) {
+          await _sendTokenToBackend(token);
+        }
 
-      // 3. Kirim ke Backend jika user sudah login
-      if (token != null) {
-        await _sendTokenToBackend(token);
+        _firebaseMessaging.onTokenRefresh.listen(_sendTokenToBackend);
       }
 
-      // 4. Setup foreground message handling
       _setupForegroundMessages();
 
     } catch (e) {
@@ -49,15 +48,14 @@ class FcmService {
       print('Message data: ${message.data}');
 
       if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
+        print('Message also contained a notification: ${message.notification?.title}');
       }
     });
   }
 
   Future<void> _sendTokenToBackend(String token) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userToken = prefs.getString('auth_token');
+      String? userToken = await _prefsHelper.getToken();
 
       if (userToken != null && userToken.isNotEmpty) {
         await _dio.post(
@@ -80,7 +78,6 @@ class FcmService {
     }
   }
 
-  // Method untuk refresh token jika diperlukan
   Future<void> refreshFcmToken() async {
     try {
       String? token = await _firebaseMessaging.getToken();
@@ -92,12 +89,10 @@ class FcmService {
     }
   }
 
-  // Method untuk mendapatkan token saat ini
   Future<String?> getCurrentToken() async {
     return await _firebaseMessaging.getToken();
   }
 
-  // Method untuk menghapus token (saat logout)
   Future<void> deleteToken() async {
     try {
       await _firebaseMessaging.deleteToken();

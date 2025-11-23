@@ -1,8 +1,8 @@
 class ApiConstants {
   // Ganti dengan IP address lokal Anda jika testing di device fisik,
   // atau biarkan 127.0.0.1 jika menggunakan emulator Android.
-  // static const String baseUrl = 'http://192.168.1.2:8000/api';
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = 'http://192.168.1.4:8000/api';
+  // static const String baseUrl = 'http://127.0.0.1:8000/api';
   // static const String baseUrl = 'https://viotmec.com/api';
 
   static const String user = '$baseUrl/user';

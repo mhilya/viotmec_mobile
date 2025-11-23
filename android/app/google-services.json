@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "702880698518",
+    "project_id": "viotmec-project",
+    "storage_bucket": "viotmec-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702880698518:android:76810270b6428d3461b2b7",
+        "android_client_info": {
+          "package_name": "com.example.viotmec_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0xd8BcIhZ2YqE4KwM7vtBiieAmpi0hnk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
