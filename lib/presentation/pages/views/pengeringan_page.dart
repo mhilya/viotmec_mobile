@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:iotmcc_mobile/data/models/pengeringan_model.dart';
-import 'package:iotmcc_mobile/presentation/providers/gudang_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/pengeringan_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
+import 'dart:math' as math;
 
 class PengeringanPage extends StatefulWidget {
   const PengeringanPage({super.key});
@@ -14,8 +14,21 @@ class PengeringanPage extends StatefulWidget {
 
 class _PengeringanPageState extends State<PengeringanPage> {
   String? _lastLoadedGudangId;
+  int _currentChartIndex = 0;
 
-  List<bool> _blowerStatusList = List.generate(8, (index) => false);
+  final List<String> _chartTitles = [
+    'Data Suhu & Kelembaban',
+    'Data Sensor Suhu',
+    'Data Sensor Kelembaban',
+    'Standard Deviation Suhu',
+    'Standard Deviation Kelembaban',
+  ];
+
+  final Color colorSensor1 = const Color(0xFFFF6B6B);
+  final Color colorSensor2 = const Color(0xFFFFA07A);
+  final Color colorKelembaban1 = const Color(0xFF45B7D1);
+  final Color colorKelembaban2 = const Color(0xFF20B2AA);
+  final Color colorThreshold = const Color(0xFFd40624);
 
   @override
   void initState() {
@@ -27,7 +40,40 @@ class _PengeringanPageState extends State<PengeringanPage> {
 
   void _loadInitialData() async {
     final gudangProvider = Provider.of<GudangProvider>(context, listen: false);
-    await gudangProvider.loadGudangList();
+    final pengeringanProvider = Provider.of<PengeringanProvider>(
+      context,
+      listen: false,
+    );
+
+    if (gudangProvider.activeGudangId != null) {
+      _lastLoadedGudangId = gudangProvider.activeGudangId;
+      pengeringanProvider.fetchData(_lastLoadedGudangId!);
+    }
+  }
+
+  Future<void> _toggleBlower(
+    PengeringanProvider provider,
+    String blowerId,
+  ) async {
+    await provider.toggleBlower(blowerId);
+  }
+
+  void _nextChart() {
+    setState(() {
+      _currentChartIndex = (_currentChartIndex + 1) % _chartTitles.length;
+    });
+  }
+
+  void _previousChart() {
+    setState(() {
+      _currentChartIndex = (_currentChartIndex - 1) % _chartTitles.length;
+    });
+  }
+
+  List<Map<String, dynamic>> _getLatest15Data(List<Map<String, dynamic>> data) {
+    if (data.isEmpty) return [];
+    if (data.length <= 15) return List.from(data.reversed);
+    return data.sublist(data.length - 15).reversed.toList();
   }
 
   @override
@@ -40,210 +86,1031 @@ class _PengeringanPageState extends State<PengeringanPage> {
         if (activeId != null && activeId != _lastLoadedGudangId) {
           _lastLoadedGudangId = activeId;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              pengeringanProvider.fetchData(activeId);
-            }
+            pengeringanProvider.fetchData(activeId);
           });
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+        return RefreshIndicator(
+          onRefresh: () async {
+            if (activeId != null) {
+              await pengeringanProvider.fetchData(activeId);
+            }
+          },
+
+        child:  SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(), 
           child: Column(
             children: [
-              if (gudangProvider.activeGudangId == null)
-                _buildNoActiveGudangWidget(gudangProvider),
+              if (activeId == null) _buildNoActiveGudangWidget(),
 
-              if (gudangProvider.activeGudangId != null) ...[
-                if (pengeringanProvider.isLoading && data == null)
-                  _buildLoadingIndicator(),
+              if (activeId != null) ...[
+                _buildHeaderCard(pengeringanProvider),
+                const SizedBox(height: 16),
 
-                if (pengeringanProvider.errorMessage.isNotEmpty && data == null)
-                  _buildErrorWidget(pengeringanProvider),
+                if (pengeringanProvider.isLoading)
+                  _buildLoadingIndicator()
+                else if (pengeringanProvider.errorMessage.isNotEmpty &&
+                    data == null)
+                  _buildErrorWidget(pengeringanProvider)
+                else if (data != null) ...[
+                  _buildChartNavigation(),
+                  const SizedBox(height: 16),
 
-                if (data != null) ...[
-                  _buildHeaderCard(data, pengeringanProvider),
-                  const SizedBox(height: 20),
-                  _buildBlowerControlCard(),
-                  const SizedBox(height: 20),
-                  _buildTempChartCard(
-                    data.suhuData.dataSuhu
-                        .map((e) => double.tryParse(e.toString()) ?? 0.0)
-                        .toList(),
-                    data.suhuData.dataWaktuSuhu
-                        .map((e) => e.toString())
-                        .toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildHumidityChartCard(
-                    data.suhuData.dataKelembaban
-                        .map((e) => double.tryParse(e.toString()) ?? 0.0)
-                        .toList(),
-                    data.suhuData.dataWaktuKelembaban
-                        .map((e) => e.toString())
-                        .toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInfoCards(data),
-                  const SizedBox(height: 20),
-                  _buildEventLogCard(
-                    data.suhuData.dataSuhu
-                        .map((e) => double.tryParse(e.toString()) ?? 0.0)
-                        .toList(),
-                    data.suhuData.dataKelembaban
-                        .map((e) => double.tryParse(e.toString()) ?? 0.0)
-                        .toList(),
-                    data.suhuData.dataWaktuSuhu
-                        .map((e) => e.toString())
-                        .toList(),
-                    data.suhuData.dataWaktuKelembaban
-                        .map((e) => e.toString())
-                        .toList(),
-                  ),
+                  _buildCurrentChart(pengeringanProvider),
+                  const SizedBox(height: 16),
+
+                  _buildQuickStatsCard(pengeringanProvider),
+                  const SizedBox(height: 16),
+
+                  _buildBlowerControlCard(pengeringanProvider),
+                  const SizedBox(height: 16),
+
+                  _buildSensorDetailsCard(pengeringanProvider),
                 ],
               ],
             ],
           ),
+        ),
         );
       },
     );
   }
 
-  Widget _buildNoActiveGudangWidget(GudangProvider gudangProvider) {
+  Widget _buildChartNavigation() {
     return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Icon(Icons.warehouse_outlined, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          const Text(
-            'Tidak Ada Gudang Aktif',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            gudangProvider.gudangList.isEmpty
-                ? 'Tidak ada gudang tersedia'
-                : 'Pilih gudang dari menu dropdown',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: const Column(
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Memuat data pengeringan...',
-            style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorWidget(PengeringanProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(Icons.error_outline, color: Colors.red.shade600, size: 40),
-          const SizedBox(height: 12),
-          Text(
-            'Gagal memuat data',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.red.shade800,
-              fontWeight: FontWeight.w600,
+          IconButton(
+            onPressed: _previousChart,
+            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade50,
+              padding: const EdgeInsets.all(8),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            provider.errorMessage,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.red.shade600,
-              fontSize: 12,
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  'Grafik ${(_currentChartIndex + 1)} / ${_chartTitles.length}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _chartTitles[_currentChartIndex],
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _lastLoadedGudangId = null;
-                final activeId = Provider.of<GudangProvider>(
-                  context,
-                  listen: false,
-                ).activeGudangId;
-                if (activeId != null) {
-                  Provider.of<PengeringanProvider>(
-                    context,
-                    listen: false,
-                  ).fetchData(activeId);
-                }
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
+          IconButton(
+            onPressed: _nextChart,
+            icon: const Icon(Icons.arrow_forward_ios, size: 18),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade50,
+              padding: const EdgeInsets.all(8),
             ),
-            child: const Text('Coba Lagi'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderCard(PengeringanData data, PengeringanProvider provider) {
-    final isActive = data.blowerData.statusRuangan == 1;
-    final statusText = isActive
-        ? 'Status Pengeringan Aktif'
-        : 'Status Pengeringan Non-Aktif';
-    final statusDescription = isActive
-        ? 'Proses pengeringan berjalan optimal'
-        : 'Ruangan pengeringan sedang tidak aktif';
+  Widget _buildCurrentChart(PengeringanProvider provider) {
+    switch (_currentChartIndex) {
+      case 0:
+        return _buildSuhuVsKelembabanChart(provider);
+      case 1:
+        return _buildSuhuComparisonChart(provider);
+      case 2:
+        return _buildKelembabanComparisonChart(provider);
+      case 3:
+        return _buildStdDevSuhuChart(provider);
+      case 4:
+        return _buildStdDevKelembabanChart(provider);
+      default:
+        return _buildSuhuComparisonChart(provider);
+    }
+  }
 
+  Widget _buildSuhuVsKelembabanChart(PengeringanProvider provider) {
+    final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+    final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+    final suhu1 = provider.getSuhuValues(sensor1Data);
+    final suhu2 = provider.getSuhuValues(sensor2Data);
+    final kel1 = provider.getKelembabanValues(sensor1Data);
+    final kel2 = provider.getKelembabanValues(sensor2Data);
+    final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+    return _buildChartContainer(
+      'Data Suhu dan Kelembaban',
+      'Monitoring Gabungan (S1 & S2)',
+      LineChart(
+        _mainChartData(
+          minY: 0,
+          maxY: 100,
+          waktu: waktu,
+          lineBarsData: [
+            _buildLineBarData(suhu1, colorSensor1, false),
+            _buildLineBarData(suhu2, colorSensor2, false),
+            _buildLineBarData(kel1, colorKelembaban1, false),
+            _buildLineBarData(kel2, colorKelembaban2, false),
+          ],
+          leftTitleSuffix: '',
+          intervalY: 20,
+        ),
+      ),
+      [
+        Column(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LegendItem(color: colorSensor1, text: 'Suhu 1'),
+                _LegendItem(color: colorSensor2, text: 'Suhu 2'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LegendItem(color: colorKelembaban1, text: 'Kelembaban 1'),
+                _LegendItem(color: colorKelembaban2, text: 'Kelembaban 2'),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuhuComparisonChart(PengeringanProvider provider) {
+    final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+    final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+    final suhu1 = provider.getSuhuValues(sensor1Data);
+    final suhu2 = provider.getSuhuValues(sensor2Data);
+    final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+    final allValues = [...suhu1, ...suhu2];
+    final double minY = _getSafeMin(allValues) - 2;
+    final double maxY = _getSafeMax(allValues) + 2;
+
+    return _buildChartContainer(
+      'Data Sensor Suhu 1 & 2',
+      'Monitoring suhu 15 data terakhir',
+      LineChart(
+        _mainChartData(
+          minY: minY < 0 ? 0 : minY,
+          maxY: maxY,
+          waktu: waktu,
+          lineBarsData: [
+            _buildLineBarData(suhu1, colorSensor1, true),
+            _buildLineBarData(suhu2, colorSensor2, true),
+          ],
+          leftTitleSuffix: '°C',
+        ),
+      ),
+      [
+        _LegendItem(color: colorSensor1, text: 'Sensor 1'),
+        _LegendItem(color: colorSensor2, text: 'Sensor 2'),
+      ],
+    );
+  }
+
+  Widget _buildKelembabanComparisonChart(PengeringanProvider provider) {
+    final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+    final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+    final kel1 = provider.getKelembabanValues(sensor1Data);
+    final kel2 = provider.getKelembabanValues(sensor2Data);
+    final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+    return _buildChartContainer(
+      'Data Sensor Kelembaban 1 & 2',
+      'Monitoring kelembaban 15 data terakhir',
+      LineChart(
+        _mainChartData(
+          minY: 0,
+          maxY: 100,
+          waktu: waktu,
+          lineBarsData: [
+            _buildLineBarData(kel1, colorKelembaban1, true),
+            _buildLineBarData(kel2, colorKelembaban2, true),
+          ],
+          leftTitleSuffix: '%',
+          intervalY: 20,
+        ),
+      ),
+      [
+        _LegendItem(color: colorKelembaban1, text: 'Sensor 1'),
+        _LegendItem(color: colorKelembaban2, text: 'Sensor 2'),
+      ],
+    );
+  }
+
+  Widget _buildStdDevSuhuChart(PengeringanProvider provider) {
+    var list1 = provider.stddevSuhu1.map((e) => e.value).toList();
+    var list2 = provider.stddevSuhu2.map((e) => e.value).toList();
+
+    if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
+    if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
+
+    list1 = list1.reversed.toList();
+    list2 = list2.reversed.toList();
+
+    final List<String> waktu = List.generate(
+      math.max(list1.length, list2.length),
+      (index) => (index + 1).toString(),
+    );
+
+    final double dataMax = _getSafeMax([...list1, ...list2]);
+    final maxY = (dataMax > 1.2 ? dataMax : 1.2) + 0.5;
+
+    final thresholdLine = HorizontalLine(
+      y: 1.0,
+      color: colorThreshold,
+      strokeWidth: 1.5,
+      dashArray: [5, 5],
+      label: HorizontalLineLabel(
+        show: true,
+        alignment: Alignment.topRight,
+        padding: const EdgeInsets.only(right: 5, bottom: 5),
+        style: TextStyle(
+          color: colorThreshold,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
+          fontFamily: 'Poppins',
+        ),
+        labelResolver: (line) => 'Batas (1.0)',
+      ),
+    );
+
+    return _buildChartContainer(
+      'Standard Deviation Suhu',
+      'Variabilitas data suhu (Batas Aman: 1.0)',
+      LineChart(
+        _mainChartData(
+          minY: 0,
+          maxY: maxY,
+          waktu: waktu,
+          lineBarsData: [
+            _buildLineBarData(list1, colorSensor1, true),
+            _buildLineBarData(list2, colorSensor2, true),
+          ],
+          leftTitleSuffix: '',
+          showDot: true,
+          extraHorizontalLines: [thresholdLine],
+        ),
+      ),
+      [
+        _LegendItem(color: colorSensor1, text: 'StdDev S1'),
+        _LegendItem(color: colorSensor2, text: 'StdDev S2'),
+        _LegendItem(color: colorThreshold, text: 'Batas Kestabilan'),
+      ],
+    );
+  }
+
+  Widget _buildStdDevKelembabanChart(PengeringanProvider provider) {
+    var list1 =
+        provider.data?.stddevKelembaban1.map((e) => e.value).toList() ?? [];
+    var list2 =
+        provider.data?.stddevKelembaban2.map((e) => e.value).toList() ?? [];
+
+    if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
+    if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
+
+    final List<String> waktu = List.generate(
+      math.max(list1.length, list2.length),
+      (index) => (index + 1).toString(),
+    );
+
+    final double dataMax = _getSafeMax([...list1, ...list2]);
+    final maxY = (dataMax > 5.5 ? dataMax : 5.5) + 1.0;
+
+    final thresholdLine = HorizontalLine(
+      y: 5.0,
+      color: colorThreshold,
+      strokeWidth: 1.5,
+      dashArray: [5, 5],
+      label: HorizontalLineLabel(
+        show: true,
+        alignment: Alignment.topRight,
+        padding: const EdgeInsets.only(right: 5, bottom: 5),
+        style: TextStyle(
+          color: colorThreshold,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
+          fontFamily: 'Poppins',
+        ),
+        labelResolver: (line) => 'Batas (5.0)',
+      ),
+    );
+
+    return _buildChartContainer(
+      'Standard Deviation Kelembaban',
+      'Variabilitas data kelembaban (Batas Aman: 5.0)',
+      LineChart(
+        _mainChartData(
+          minY: 0,
+          maxY: maxY,
+          waktu: waktu,
+          lineBarsData: [
+            _buildLineBarData(list1, colorKelembaban1, true),
+            _buildLineBarData(list2, colorKelembaban2, true),
+          ],
+          leftTitleSuffix: '',
+          showDot: true,
+          extraHorizontalLines: [thresholdLine],
+        ),
+      ),
+      [
+        _LegendItem(color: colorKelembaban1, text: 'StdDev K1'),
+        _LegendItem(color: colorKelembaban2, text: 'StdDev K2'),
+        _LegendItem(color: colorThreshold, text: 'Batas Kestabilan'),
+      ],
+    );
+  }
+
+  LineChartData _mainChartData({
+    required double minY,
+    required double maxY,
+    required List<String> waktu,
+    required List<LineChartBarData> lineBarsData,
+    required String leftTitleSuffix,
+    double? intervalY,
+    bool showDot = false,
+    List<HorizontalLine>? extraHorizontalLines,
+  }) {
+    return LineChartData(
+      extraLinesData: ExtraLinesData(
+        horizontalLines: extraHorizontalLines ?? [],
+      ),
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: intervalY,
+        getDrawingHorizontalLine: (value) {
+          return FlLine(
+            color: Colors.grey.shade200,
+            strokeWidth: 1,
+            dashArray: [5, 5],
+          );
+        },
+      ),
+      titlesData: FlTitlesData(
+        show: true,
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 30,
+            interval: _calculateIntervalX(waktu.length),
+            getTitlesWidget: (value, meta) {
+              final index = value.toInt();
+              if (index >= 0 && index < waktu.length) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    _formatTimeShort(waktu[index]),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 10,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: intervalY ?? (maxY - minY) / 4,
+            reservedSize: 40,
+            getTitlesWidget: (value, meta) {
+              if (value == minY || value == maxY) return const SizedBox();
+              return Text(
+                '${value.toInt()}$leftTitleSuffix',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+                textAlign: TextAlign.left,
+              );
+            },
+          ),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: true,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300),
+          left: BorderSide(color: Colors.grey.shade300),
+          top: BorderSide.none,
+          right: BorderSide.none,
+        ),
+      ),
+      minX: 0,
+      maxX: waktu.isNotEmpty ? (waktu.length - 1).toDouble() : 0,
+      minY: minY,
+      maxY: maxY,
+      lineBarsData: lineBarsData,
+      lineTouchData: LineTouchData(
+        handleBuiltInTouches: true,
+        touchTooltipData: LineTouchTooltipData(
+          getTooltipColor: (touchedSpot) => Colors.blueGrey.withOpacity(0.9),
+          tooltipPadding: const EdgeInsets.all(8),
+          tooltipMargin: 8,
+          getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+            return touchedBarSpots.map((barSpot) {
+              String label = '';
+              String unit = leftTitleSuffix;
+              final color = barSpot.bar.color;
+
+              if (color == colorSensor1) {
+                label = 'Sensor 1';
+                unit = '°C';
+              } else if (color == colorSensor2) {
+                label = 'Sensor 2';
+                unit = '°C';
+              } else if (color == colorKelembaban1) {
+                label = 'Kelembaban 1';
+                unit = '%';
+              } else if (color == colorKelembaban2) {
+                label = 'Kelembaban 2';
+                unit = '%';
+              }
+
+              return LineTooltipItem(
+                '$label: ${barSpot.y.toStringAsFixed(2)} $unit',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              );
+            }).toList();
+          },
+        ),
+      ),
+    );
+  }
+
+  LineChartBarData _buildLineBarData(
+    List<double> data,
+    Color color,
+    bool withArea,
+  ) {
+    return LineChartBarData(
+      spots: _prepareChartSpots(data),
+      isCurved: true,
+      curveSmoothness: 0.35,
+      color: color,
+      barWidth: 3,
+      isStrokeCapRound: true,
+      dotData: FlDotData(show: false),
+      belowBarData: BarAreaData(
+        show: withArea,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withOpacity(0.2), color.withOpacity(0.0)],
+        ),
+      ),
+    );
+  }
+
+  double _calculateIntervalX(int length) {
+    if (length <= 5) return 1;
+    if (length <= 10) return 2;
+    return 3;
+  }
+
+  String _formatTimeShort(String time) {
+    if (time.length < 3) return time;
+    try {
+      final parts = time.split(':');
+      if (parts.length >= 2) {
+        return '${parts[0]}:${parts[1]}';
+      }
+      return time;
+    } catch (e) {
+      return time;
+    }
+  }
+
+  List<FlSpot> _prepareChartSpots(List<double> data) {
+    return data.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value);
+    }).toList();
+  }
+
+  double _getSafeMin(List<double> data) {
+    if (data.isEmpty) return 0;
+    return data.reduce(math.min);
+  }
+
+  double _getSafeMax(List<double> data) {
+    if (data.isEmpty) return 100;
+    return data.reduce(math.max);
+  }
+
+  Widget _buildChartContainer(
+    String title,
+    String subtitle,
+    Widget chart,
+    List<Widget> legend,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(height: 220, child: chart),
+          const SizedBox(height: 20),
+          Center(
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: legend,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStatsCard(PengeringanProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.analytics_rounded, size: 20, color: Color(0xFFFFC107)),
+              SizedBox(width: 8),
+              Text(
+                'Rata-Rata & Data Terbaru',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            childAspectRatio: 2.0,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            children: [
+              _buildStatItem(
+                'Suhu S1',
+                '${provider.data?.avgSuhu1.toStringAsFixed(1) ?? "0.0"}°C',
+                'Terbaru: ${provider.data?.latestSuhu1.toStringAsFixed(1) ?? "0.0"}°C',
+                Icons.thermostat,
+                colorSensor1,
+              ),
+              _buildStatItem(
+                'Suhu S2',
+                '${provider.data?.avgSuhu2.toStringAsFixed(1) ?? "0.0"}°C',
+                'Terbaru: ${provider.data?.latestSuhu2.toStringAsFixed(1) ?? "0.0"}°C',
+                Icons.thermostat,
+                colorSensor2,
+              ),
+              _buildStatItem(
+                'Kelembaban S1',
+                '${provider.data?.avgKelembaban1.toStringAsFixed(1) ?? "0.0"}%',
+                'Terbaru: ${provider.data?.latestKelembaban1.toStringAsFixed(1) ?? "0.0"}%',
+                Icons.water_drop,
+                colorKelembaban1,
+              ),
+              _buildStatItem(
+                'Kelembaban S2',
+                '${provider.data?.avgKelembaban2.toStringAsFixed(1) ?? "0.0"}%',
+                'Terbaru: ${provider.data?.latestKelembaban2.toStringAsFixed(1) ?? "0.0"}%',
+                Icons.water_drop,
+                colorKelembaban2,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+    String title,
+    String value,
+    String subtitle,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: color.withOpacity(0.2), blurRadius: 4),
+              ],
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 9,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildBlowerControlCard(PengeringanProvider provider) {
+    // 1. Ambil daftar blower dari backend
+    final blowersList = provider.availableBlowers;
+
+    if (blowersList.isEmpty) {
+      return const SizedBox(); // Atau return Text("Tidak ada blower")
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.air, size: 20, color: Color(0xFF2196F3)),
+              SizedBox(width: 8),
+              Text(
+                'Kontrol Blower',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 2. Render Dinamis menggunakan ListView.separated atau Column+Map
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: blowersList.length,
+            separatorBuilder: (context, index) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Divider(height: 1, color: Colors.grey),
+            ),
+            itemBuilder: (context, index) {
+              final blowerMeta = blowersList[index];
+              final id = blowerMeta.idSensor;
+              
+              // Format Label: "blower_1" -> "BLOWER 1"
+              final label = blowerMeta.flagSensor
+                  .replaceAll('_', ' ')
+                  .toUpperCase();
+
+              // Ambil status spesifik dari Provider
+              final isActive = provider.isBlowerActive(id);
+              
+              // Ambil nilai sensor (jika ada datanya di map)
+              // Kita akses via provider._blowersData (tapi variable itu private),
+              // jadi idealnya provider punya getter `getBlowerData(id)`.
+              // Jika provider belum punya getter publik, kita handle safe null:
+              // (Asumsi di provider Anda menambah getter: BlowerStatusModel? getBlowerData(String id))
+              
+              // Karena di kode provider sebelumnya variabel _blowersData private, 
+              // kita hanya punya isBlowerActive. Untuk nilai sensor string,
+              // Anda mungkin perlu menambah getter di provider: `String getBlowerValue(String id)`
+              // Untuk sekarang kita set default atau ambil dari getter isBlowerActive logic.
+              
+              // Warna selang-seling (Biru / Hijau)
+              final color = index % 2 == 0 ? Colors.blue : Colors.green;
+
+              return _buildSingleBlowerControl(
+                provider: provider,
+                blowerId: id,
+                blowerName: label,
+                isActive: isActive,
+                // Jika provider belum support get nilai string per ID, 
+                // bisa tampilkan status ON/OFF saja atau update providernya.
+                nilaiSensor: isActive ? "1" : "0", 
+                color: color,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ BUAT WIDGET UNTUK SATU BLOKER
+Widget _buildSingleBlowerControl({
+    required PengeringanProvider provider,
+    required String blowerId,
+    required String blowerName,
+    required bool isActive,
+    required String nilaiSensor,
+    required Color color,
+  }) {
+    // Cek apakah spesifik ID ini sedang loading
+    final isToggling = provider.isBlowerToggling(blowerId);
+
+    return Row(
+      children: [
+        // Status Info
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                blowerName,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isActive ? 'AKTIF' : 'NON-AKTIF',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isActive ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Nilai Sensor: $nilaiSensor',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 16),
+
+        // Tombol Toggle
+        ElevatedButton(
+          onPressed: isToggling
+              ? null
+              : () => _toggleBlower(provider, blowerId),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isActive ? Colors.red : color,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: isToggling
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
+                  ),
+                )
+              : Text(isActive ? 'MATIKAN' : 'HIDUPKAN'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSensorDetailsCard(PengeringanProvider provider) {
+    final chartData = provider.data?.getChartData() ?? {};
+    final sensor1Data = chartData['sensor1'] ?? [];
+    final latestSegment = _getLatest15Data(sensor1Data);
+    final listToShow = latestSegment.reversed.take(5).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '5 Log Data Terakhir',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (listToShow.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Center(child: Text('Belum ada data')),
+            )
+          else
+            Column(
+              children: listToShow.map((data) => _buildDataItem(data)).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataItem(Map<String, dynamic> data) {
+    final suhu = (data['suhu'] as num?)?.toDouble() ?? 0.0;
+    final kelembaban = (data['kelembaban'] as num?)?.toDouble() ?? 0.0;
+    final waktu = data['waktu']?.toString() ?? '--:--';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Text(
+            waktu,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+          const Spacer(),
+          Icon(Icons.thermostat, size: 14, color: Colors.red.shade300),
+          const SizedBox(width: 4),
+          Text(
+            '${suhu.toStringAsFixed(1)}°C',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 12),
+          Icon(Icons.water_drop, size: 14, color: Colors.blue.shade300),
+          const SizedBox(width: 4),
+          Text(
+            '${kelembaban.toStringAsFixed(1)}%',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(PengeringanProvider provider) {
+    final isActive = provider.data?.statusRuangan == 1;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isActive
-              ? [const Color(0xFF2196F3), const Color(0xFF1976D2)]
-              : [Colors.grey, Colors.grey.shade700],
+              ? [const Color(0xFF4CAF50), const Color(0xFF2E7D32)]
+              : [Colors.grey.shade400, Colors.grey.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: (isActive ? const Color(0xFF2196F3) : Colors.grey)
-                .withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: (isActive ? Colors.green : Colors.grey).withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -252,13 +1119,13 @@ class _PengeringanPageState extends State<PengeringanPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.25),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              isActive ? Icons.air_outlined : Icons.power_off,
+            child: const Icon(
+              Icons.dry_cleaning,
               color: Colors.white,
-              size: 30,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
@@ -267,950 +1134,88 @@ class _PengeringanPageState extends State<PengeringanPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  statusText,
+                  isActive ? 'Pengeringan Aktif' : 'Pengeringan Non-Aktif',
                   style: const TextStyle(
-                    fontFamily: 'Poppins',
                     color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 8),
-                _buildStatusIndicator(isActive),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
-                  statusDescription,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 12,
-                  ),
+                  'Suhu Rata-rata: ${provider.data?.currentSuhu ?? "0"}°C',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
+                Text(
+                  'Kelembaban Rata-rata: ${provider.data?.currentKelembaban ?? "0"}%',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
               ],
             ),
           ),
-          if (provider.isLoading)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusIndicator(bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+  Widget _buildNoActiveGudangWidget() => Center(
+    child: Column(
+      children: [
+        Icon(Icons.warehouse_outlined, size: 50, color: Colors.grey.shade300),
+        const SizedBox(height: 10),
+        Text(
+          'Pilih Gudang Terlebih Dahulu',
+          style: TextStyle(color: Colors.grey.shade400),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildLoadingIndicator() => const Padding(
+    padding: EdgeInsets.all(20),
+    child: Center(child: CircularProgressIndicator()),
+  );
+
+  Widget _buildErrorWidget(PengeringanProvider p) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Text(
+        p.errorMessage,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
       ),
+    ),
+  );
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String text;
+  const _LegendItem({required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: isActive ? Colors.white : Colors.orange,
-              shape: BoxShape.circle,
-            ),
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
           Text(
-            isActive ? 'AKTIF' : 'NON-AKTIF',
+            text,
             style: const TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.white,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildTempChartCard(List<double> dataSuhu, List<String> dataWaktu) {
-    final spots = _prepareChartSpotsWithTime(dataSuhu, dataWaktu);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Riwayat Suhu 1 jam Terakhir',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: _calculateInterval(dataSuhu),
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
-                    strokeWidth: 1,
-                    dashArray: [4],
-                  ),
-                  getDrawingVerticalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
-                    strokeWidth: 1,
-                    dashArray: [4],
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: _calculateTimeInterval(dataWaktu),
-                      getTitlesWidget: (value, meta) {
-                        if (value >= 0 && value < dataWaktu.length) {
-                          final time = dataWaktu[value.toInt()];
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              _formatTimeForChart(time),
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: 5,
-                      getTitlesWidget: (value, meta) => Text(
-                        '${value.toInt()}°C',
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 10,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                ),
-                minX: 0,
-                maxX: dataSuhu.isNotEmpty ? (dataSuhu.length - 1).toDouble() : 0,
-                minY: dataSuhu.isNotEmpty ? _getMinValue(dataSuhu) - 2 : 40,
-                maxY: dataSuhu.isNotEmpty ? _getMaxValue(dataSuhu) + 2 : 60,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: const Color(0xFF2196F3),
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF2196F3).withOpacity(0.3),
-                          const Color(0xFF2196F3).withOpacity(0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHumidityChartCard(
-      List<double> dataKelembaban, List<String> dataWaktu) {
-    final spots = _prepareChartSpotsWithTime(dataKelembaban, dataWaktu);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Riwayat Kelembapan 1 Jam Terakhir',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: _calculateInterval(dataKelembaban),
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
-                    strokeWidth: 1,
-                    dashArray: [4],
-                  ),
-                  getDrawingVerticalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
-                    strokeWidth: 1,
-                    dashArray: [4],
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: _calculateTimeInterval(dataWaktu),
-                      getTitlesWidget: (value, meta) {
-                        if (value >= 0 && value < dataWaktu.length) {
-                          final time = dataWaktu[value.toInt()];
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              _formatTimeForChart(time),
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: 10,
-                      getTitlesWidget: (value, meta) => Text(
-                        '${value.toInt()}%',
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 10,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                ),
-                minX: 0,
-                maxX: dataKelembaban.isNotEmpty
-                    ? (dataKelembaban.length - 1).toDouble()
-                    : 0,
-                minY: dataKelembaban.isNotEmpty
-                    ? _getMinValue(dataKelembaban) - 5
-                    : 40,
-                maxY: dataKelembaban.isNotEmpty
-                    ? _getMaxValue(dataKelembaban) + 5
-                    : 70,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: Colors.teal,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.teal.withOpacity(0.3),
-                          Colors.teal.withOpacity(0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlowerControlCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.air,
-                  size: 20,
-                  color: Color(0xFF2196F3),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Kontrol Blower',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 2.5,
-            ),
-            itemCount: 2,
-            itemBuilder: (context, index) {
-              int blowerNumber = index + 1;
-              bool isBlowerOn = _getBlowerStatus(blowerNumber);
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Blower $blowerNumber',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            isBlowerOn ? 'MENYALA' : 'MATI',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isBlowerOn
-                                  ? const Color(0xFF2196F3)
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: isBlowerOn,
-                      onChanged: (value) {
-                        _toggleBlower(blowerNumber, value);
-                      },
-                      activeColor: const Color(0xFF2196F3),
-                      activeTrackColor: const Color(
-                        0xFF2196F3,
-                      ).withOpacity(0.5),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Blower berfungsi untuk mengatur sirkulasi udara dalam ruang pengeringan',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  bool _getBlowerStatus(int blowerNumber) {
-    return _blowerStatusList[blowerNumber - 1];
-  }
-
-  void _toggleBlower(int blowerNumber, bool value) {
-    setState(() {
-      _blowerStatusList[blowerNumber - 1] = value;
-    });
-    print('Blower $blowerNumber (Dummy): ${value ? 'ON' : 'OFF'}');
-  }
-
-  Widget _buildInfoCards(PengeringanData data) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          return Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard(
-                  icon: Icons.thermostat,
-                  title: 'Parameter Utama',
-                  children: [
-                    _infoRow(
-                      'Suhu Rata-rata:',
-                      '${data.suhuData.dataAvgSuhu}° C',
-                    ),
-                    _infoRow(
-                      'Kelembapan Rata-rata:',
-                      '${data.suhuData.dataAvgKelembaban}%',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildInfoCard(
-                  icon: Icons.power_settings_new,
-                  title: 'Status Operasional',
-                  children: [
-                    _buildOperationalStatus(data.blowerData.statusRuangan),
-                  ],
-                ),
-              ),
-            ],
-          );
-        } else {
-          return Column(
-            children: [
-              _buildInfoCard(
-                icon: Icons.thermostat,
-                title: 'Parameter Utama',
-                children: [
-                  _infoRow(
-                    'Suhu Rata-rata:',
-                    '${data.suhuData.dataAvgSuhu}° C',
-                  ),
-                  _infoRow(
-                    'Kelembapan Rata-rata:',
-                    '${data.suhuData.dataAvgKelembaban}%',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildInfoCard(
-                icon: Icons.power_settings_new,
-                title: 'Status Operasional',
-                children: [
-                  _buildOperationalStatus(data.blowerData.statusRuangan),
-                ],
-              ),
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 20, color: const Color(0xFF2196F3)),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOperationalStatus(int? statusRuangan) {
-    final isActive = statusRuangan == 1;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive ? Colors.blue : Colors.grey,
-            border: Border.all(
-              color: isActive ? Colors.blue.shade700 : Colors.grey.shade700,
-              width: 3,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          isActive ? 'AKTIF' : 'NON-AKTIF',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isActive ? Colors.blue : Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF2196F3),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEventLogCard(
-    List<double> dataSuhu,
-    List<double> dataKelembaban,
-    List<String> dataWaktuSuhu,
-    List<String> dataWaktuKelembaban,
-  ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.history, color: Color(0xFF2196F3)),
-              SizedBox(width: 8),
-              Text(
-                'Data Sensor Terbaru',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ..._buildSensorDataItems(
-            dataSuhu,
-            dataKelembaban,
-            dataWaktuSuhu,
-            dataWaktuKelembaban,
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildSensorDataItems(
-    List<double> dataSuhu,
-    List<double> dataKelembaban,
-    List<String> dataWaktuSuhu,
-    List<String> dataWaktuKelembaban,
-  ) {
-    if (dataSuhu.isEmpty && dataKelembaban.isEmpty) {
-      return [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Text(
-              'Tidak ada data sensor',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.grey.shade500,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        ),
-      ];
-    }
-
-    List<Widget> items = [];
-    int itemCount = dataSuhu.length;
-
-    for (int i = 0; i < itemCount && i < 4; i++) {
-      final suhu = i < dataSuhu.length ? dataSuhu[i] : 0.0;
-      final kelembaban = i < dataKelembaban.length ? dataKelembaban[i] : 0.0;
-      final waktuSuhu =
-          i < dataWaktuSuhu.length ? dataWaktuSuhu[i] : '--:--:--';
-      final waktuKelembaban =
-          i < dataWaktuKelembaban.length && dataWaktuKelembaban[i].isNotEmpty
-              ? dataWaktuKelembaban[i]
-              : waktuSuhu;
-
-      items.add(_sensorDataRow(suhu, kelembaban, waktuSuhu, waktuKelembaban));
-      if (i < itemCount - 1 && i < 3) {
-        items.add(const SizedBox(height: 8));
-      }
-    }
-
-    return items;
-  }
-
-  Widget _sensorDataRow(
-    double suhu,
-    double kelembaban,
-    String waktuSuhu,
-    String waktuKelembaban,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(
-                0xFF2196F3,
-              ).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.sensors,
-              color: Color(0xFF2196F3),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Suhu: ${suhu.toStringAsFixed(1)}°C',
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      'Kelembaban: ${kelembaban.toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      waktuSuhu,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (waktuSuhu != waktuKelembaban) ...[
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.access_time,
-                        size: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        waktuKelembaban,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<FlSpot> _prepareChartSpotsWithTime(
-      List<double> data, List<String> waktu) {
-    List<FlSpot> spots = [];
-    // Data dari API (dan model) adalah terbaru -> terlama (index 0 adalah terbaru)
-    // Grafik harus tertua -> terbaru (kiri ke kanan)
-    // Jadi kita balik (reverse) loopnya
-    for (int i = data.length - 1; i >= 0; i--) {
-      spots.add(FlSpot(i.toDouble(), data[i]));
-    }
-    if (spots.isEmpty) {
-      return [FlSpot(0, 0)];
-    }
-    return spots;
-  }
-
-  String _formatTimeForChart(String time) {
-    try {
-      final parts = time.split(':');
-      if (parts.length == 3) {
-        return '${parts[0]}:${parts[1]}'; // Format: HH:mm
-      }
-    } catch (e) {
-      print('Error formatting time: $time');
-    }
-    return time;
-  }
-
-  double _calculateInterval(List<double> data) {
-    if (data.isEmpty) return 5;
-    final min = _getMinValue(data);
-    final max = _getMaxValue(data);
-    final range = max - min;
-    if (range <= 0) return 2;
-    if (range <= 5) return 1;
-    if (range <= 10) return 2;
-    if (range <= 20) return 5;
-    return 10;
-  }
-
-  double _calculateTimeInterval(List<String> waktu) {
-    if (waktu.isEmpty) return 1;
-    if (waktu.length <= 6) return 1;
-    if (waktu.length <= 12) return 2;
-    return (waktu.length / 5).ceilToDouble();
-  }
-
-  double _getMinValue(List<double> data) {
-    if (data.isEmpty) return 0;
-    return data.reduce((a, b) => a < b ? a : b);
-  }
-
-  double _getMaxValue(List<double> data) {
-    if (data.isEmpty) return 100;
-    return data.reduce((a, b) => a > b ? a : b);
   }
 }
-

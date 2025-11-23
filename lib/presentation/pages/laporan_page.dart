@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'views/perebusan_page.dart';
+// import 'views/perebusan_page.dart';
+import 'views/blanching_page.dart';
 import 'views/fermentasi_page.dart';
 import 'views/pengeringan_page.dart';
 
@@ -78,7 +79,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
       body: TabBarView(
         controller: _tabController,
         children: const [
-          PerebusanPage(),
+          BlanchingPage(),
           FermentasiPage(),
           PengeringanPage(),
         ],

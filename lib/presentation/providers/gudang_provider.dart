@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/data/models/gudang_model.dart';
-import 'package:iotmcc_mobile/data/repositories/gudang_repository.dart';
+import 'package:viotmec_mobile/data/models/gudang_model.dart';
+import 'package:viotmec_mobile/data/repositories/gudang_repository.dart';
 
 class GudangProvider extends ChangeNotifier {
   String? _activeGudangId;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/data/models/fermentasi_model.dart';
-import 'package:iotmcc_mobile/data/repositories/fermentasi_repository.dart';
+import 'package:viotmec_mobile/data/models/fermentasi_model.dart';
+import 'package:viotmec_mobile/data/repositories/fermentasi_repository.dart';
 
 class FermentasiProvider extends ChangeNotifier {
   final FermentasiRepository repository;
@@ -15,77 +15,118 @@ class FermentasiProvider extends ChangeNotifier {
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
-  // GUNAKAN DATA YANG SUDAH DI-AVERAGE DARI API
-  List<double> get dataSuhu => _data?.averagedSuhu ?? [];
-  List<double> get dataKelembaban => _data?.averagedKelembaban ?? [];
-  List<String> get dataWaktuSuhu => _data?.averagedWaktuSuhu ?? [];
-  List<String> get dataWaktuKelembaban => _data?.averagedWaktuKelembaban ?? [];
-  
-  // RATA-RATA GLOBAL DARI API - SUDAH BENAR
-  String get dataAvgSuhu => _data?.avgSuhu ?? '0';
-  String get dataAvgKelembaban => _data?.avgKelembaban ?? '0';
+  String get currentSuhu => _data?.currentSuhu ?? '0';
+  String get currentKelembaban => _data?.currentKelembaban ?? '0';
 
-  // DATA UNTUK GRAFIK 1 JAM TERAKHIR
-  List<double> get dataSuhu1Jam => _getData1Jam(dataSuhu, dataWaktuSuhu);
-  List<double> get dataKelembaban1Jam => _getData1Jam(dataKelembaban, dataWaktuKelembaban);
-  List<String> get dataWaktu1Jam => _getWaktu1Jam(dataWaktuSuhu);
+  double get avgSuhu1 => _data?.avgSuhu1 ?? 0.0;
+  double get avgKelembaban1 => _data?.avgKelembaban1 ?? 0.0;
+  double get avgSuhu2 => _data?.avgSuhu2 ?? 0.0;
+  double get avgKelembaban2 => _data?.avgKelembaban2 ?? 0.0;
 
-  // METHOD UNTUK FILTER DATA 1 JAM TERAKHIR
-  List<double> _getData1Jam(List<double> data, List<String> waktu) {
-    if (data.isEmpty || waktu.isEmpty) return [];
-    
-    final now = DateTime.now();
-    final satuJamLalu = now.subtract(const Duration(hours: 1));
-    
-    List<double> result = [];
-    
-    for (int i = 0; i < waktu.length; i++) {
-      final waktuData = _parseTimeString(waktu[i]);
-      if (waktuData != null && waktuData.isAfter(satuJamLalu)) {
-        result.add(data[i]);
-      }
-    }
-    
-    return result;
+  double get latestSuhu1 => _data?.latestSuhu1 ?? 0.0;
+  double get latestKelembaban1 => _data?.latestKelembaban1 ?? 0.0;
+  double get latestSuhu2 => _data?.latestSuhu2 ?? 0.0;
+  double get latestKelembaban2 => _data?.latestKelembaban2 ?? 0.0;
+
+  int get statusRuangan => _data?.statusRuangan ?? 0;
+
+  List<Map<String, dynamic>> get chartDataSensor1 {
+    final chartData = _data?.getChartData();
+    return chartData?['sensor1'] ?? [];
   }
 
-  List<String> _getWaktu1Jam(List<String> waktu) {
-    if (waktu.isEmpty) return [];
-    
+  List<Map<String, dynamic>> get chartDataSensor2 {
+    final chartData = _data?.getChartData();
+    return chartData?['sensor2'] ?? [];
+  }
+
+  List<Map<String, dynamic>> get allChartData {
+    final chartData = _data?.getChartData();
+    final sensor1 = chartData?['sensor1'] ?? [];
+    final sensor2 = chartData?['sensor2'] ?? [];
+    return [...sensor1, ...sensor2];
+  }
+
+  List<Map<String, dynamic>> get chartDataSensor11Jam =>
+      _getData1Jam(chartDataSensor1);
+  List<Map<String, dynamic>> get chartDataSensor21Jam =>
+      _getData1Jam(chartDataSensor2);
+  List<Map<String, dynamic>> get allChartData1Jam => _getData1Jam(allChartData);
+
+  List<Map<String, dynamic>> _getData1Jam(List<Map<String, dynamic>> data) {
+    if (data.isEmpty) return [];
     final now = DateTime.now();
     final satuJamLalu = now.subtract(const Duration(hours: 1));
-    
-    List<String> result = [];
-    
-    for (int i = 0; i < waktu.length; i++) {
-      final waktuData = _parseTimeString(waktu[i]);
-      if (waktuData != null && waktuData.isAfter(satuJamLalu)) {
-        result.add(waktu[i]);
-      }
-    }
-    
-    return result;
+    return data.where((item) {
+      final waktuData = _parseTimeString(item['waktu']?.toString() ?? '');
+      return waktuData != null && waktuData.isAfter(satuJamLalu);
+    }).toList();
   }
 
   DateTime? _parseTimeString(String timeStr) {
     try {
       final now = DateTime.now();
       final parts = timeStr.split(':');
-      if (parts.length == 3) {
+      if (parts.length >= 2) {
         final hour = int.parse(parts[0]);
         final minute = int.parse(parts[1]);
-        final second = int.parse(parts[2]);
-        
-        return DateTime(now.year, now.month, now.day, hour, minute, second);
+        return DateTime(now.year, now.month, now.day, hour, minute);
       }
     } catch (e) {
-      print('Error parsing time: $timeStr');
+      print('Error parsing time: $timeStr, error: $e');
     }
     return null;
   }
 
-  // INFO SENSOR
-  int get totalSensors => _data?.sensorInfo['total_sensors'] ?? 0;
+  List<double> getSuhuValues(List<Map<String, dynamic>> chartData) {
+    return chartData.map((item) => (item['suhu'] as double? ?? 0.0)).toList();
+  }
+
+  List<double> getKelembabanValues(List<Map<String, dynamic>> chartData) {
+    return chartData
+        .map((item) => (item['kelembaban'] as double? ?? 0.0))
+        .toList();
+  }
+
+  List<String> getWaktuValues(List<Map<String, dynamic>> chartData) {
+    return chartData.map((item) => (item['waktu']?.toString() ?? '')).toList();
+  }
+
+  List<String> referenceList(
+    List<Map<String, dynamic>> sensor1Data,
+    List<Map<String, dynamic>> sensor2Data,
+  ) {
+    return sensor1Data.length >= sensor2Data.length
+        ? getWaktuValues(sensor1Data)
+        : getWaktuValues(sensor2Data);
+  }
+
+  List<StdDevData> get stddevSuhu1 => _data?.stddevSuhu1 ?? [];
+  List<StdDevData> get stddevKelembaban1 => _data?.stddevKelembaban1 ?? [];
+  List<StdDevData> get stddevSuhu2 => _data?.stddevSuhu2 ?? [];
+  List<StdDevData> get stddevKelembaban2 => _data?.stddevKelembaban2 ?? [];
+
+  List<List<dynamic>> get stddevSuhu1AsList =>
+      stddevSuhu1.map((stddev) => stddev.toList()).toList();
+  List<List<dynamic>> get stddevKelembaban1AsList =>
+      stddevKelembaban1.map((stddev) => stddev.toList()).toList();
+  List<List<dynamic>> get stddevSuhu2AsList =>
+      stddevSuhu2.map((stddev) => stddev.toList()).toList();
+  List<List<dynamic>> get stddevKelembaban2AsList =>
+      stddevKelembaban2.map((stddev) => stddev.toList()).toList();
+
+  SensorData? getSensorData(String flag) => _data?.getSensorByFlag(flag);
+  WaktuSensorData? getWaktuData(String flag) => _data?.getWaktuByFlag(flag);
+
+  int get totalDataPoints => allChartData.length;
+  int get totalDataPoints1Jam => allChartData1Jam.length;
+
+  List<double> get suhu1Values => getSensorData('suhu_1')?.value ?? [];
+  List<double> get kelembaban1Values =>
+      getSensorData('kelembaban_1')?.value ?? [];
+  List<double> get suhu2Values => getSensorData('suhu_2')?.value ?? [];
+  List<double> get kelembaban2Values =>
+      getSensorData('kelembaban_2')?.value ?? [];
 
   Future<void> fetchData(String? gudangId) async {
     if (gudangId == null || gudangId.isEmpty) {
@@ -98,20 +139,11 @@ class FermentasiProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = '';
     notifyListeners();
-    
+
     try {
       _data = await repository.getFermentasiData(gudangId);
       if (_data == null) {
         _errorMessage = 'Data tidak ditemukan';
-      } else {
-        // Debug info
-        print('Data suhu averaged: ${_data!.averagedSuhu}');
-        print('Data kelembaban averaged: ${_data!.averagedKelembaban}');
-        print('Waktu suhu: ${_data!.averagedWaktuSuhu}');
-        print('Rata-rata suhu: ${_data!.avgSuhu}');
-        print('Rata-rata kelembaban: ${_data!.avgKelembaban}');
-        print('Data 1 jam - Suhu: ${dataSuhu1Jam.length} data');
-        print('Data 1 jam - Kelembaban: ${dataKelembaban1Jam.length} data');
       }
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -127,4 +159,14 @@ class FermentasiProvider extends ChangeNotifier {
     _errorMessage = '';
     notifyListeners();
   }
+
+  Future<void> refreshData(String? gudangId) async {
+    await fetchData(gudangId);
+  }
+
+  bool get hasData => _data != null;
+  bool get hasChartData =>
+      chartDataSensor1.isNotEmpty || chartDataSensor2.isNotEmpty;
+  bool get hasSensor1Data => chartDataSensor1.isNotEmpty;
+  bool get hasSensor2Data => chartDataSensor2.isNotEmpty;
 }

@@ -1,6 +1,6 @@
-import 'package:iotmcc_mobile/core/network/api_service.dart';
-import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
-import 'package:iotmcc_mobile/data/models/login_response.dart';
+import 'package:viotmec_mobile/core/network/api_service.dart';
+import 'package:viotmec_mobile/core/utils/shared_preferences.dart';
+import 'package:viotmec_mobile/data/models/login_response.dart';
 
 class AuthRepository {
   final ApiService _apiService;

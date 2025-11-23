@@ -1,7 +1,7 @@
-import 'package:iotmcc_mobile/core/constants/api_constant.dart';
-import 'package:iotmcc_mobile/core/network/api_service.dart';
-import 'package:iotmcc_mobile/data/models/riwayat_model.dart';
-import 'package:iotmcc_mobile/data/models/ruangan_model.dart';
+import 'package:viotmec_mobile/core/constants/api_constant.dart';
+import 'package:viotmec_mobile/core/network/api_service.dart';
+import 'package:viotmec_mobile/data/models/riwayat_model.dart';
+import 'package:viotmec_mobile/data/models/ruangan_model.dart';
 
 // Enum untuk membedakan tipe ruangan saat memanggil API
 enum TipeRuanganRiwayat {

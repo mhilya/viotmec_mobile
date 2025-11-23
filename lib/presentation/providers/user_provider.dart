@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/data/models/user_model.dart';
-import 'package:iotmcc_mobile/data/repositories/user_repository.dart';
+import 'package:viotmec_mobile/data/models/user_model.dart';
+import 'package:viotmec_mobile/data/repositories/user_repository.dart';
 
 class UserProvider extends ChangeNotifier {
   final UserRepository userRepository;

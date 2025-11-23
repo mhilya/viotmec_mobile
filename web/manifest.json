@@ -1,6 +1,6 @@
 {
-     "name": "Viotmec Mobile",
-     "short_name": "Viotmec Mobile",
+     "name": "viotmec_mobile",
+     "short_name": "viotmec_mobile",
      "start_url": ".",
      "display": "standalone",
      "background_color": "#0175C2",

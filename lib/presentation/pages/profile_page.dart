@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/data/models/user_model.dart';
 import 'package:provider/provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
-import 'package:iotmcc_mobile/routes/app_routes.dart';
+import 'package:viotmec_mobile/data/models/user_model.dart';
+import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/auth_provider.dart';
+import 'package:viotmec_mobile/routes/app_routes.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});

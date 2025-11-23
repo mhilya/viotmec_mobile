@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:iotmcc_mobile/data/models/riwayat_model.dart';
-import 'package:iotmcc_mobile/presentation/providers/riwayat_perebusan_provider.dart';
+import 'package:viotmec_mobile/data/models/riwayat_model.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_perebusan_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/presentation/pages/dashboard_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/login_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/riwayat_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/splash_screen.dart';
-import 'package:iotmcc_mobile/routes/app_routes.dart';
-import 'package:iotmcc_mobile/presentation/pages/laporan_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/main_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/profile_page.dart';
+import 'package:viotmec_mobile/presentation/pages/dashboard_page.dart';
+import 'package:viotmec_mobile/presentation/pages/login_page.dart';
+import 'package:viotmec_mobile/presentation/pages/riwayat_page.dart';
+import 'package:viotmec_mobile/presentation/pages/splash_screen.dart';
+import 'package:viotmec_mobile/routes/app_routes.dart';
+import 'package:viotmec_mobile/presentation/pages/laporan_page.dart';
+import 'package:viotmec_mobile/presentation/pages/main_page.dart';
+import 'package:viotmec_mobile/presentation/pages/profile_page.dart';
 
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {

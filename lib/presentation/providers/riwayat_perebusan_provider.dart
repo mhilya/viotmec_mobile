@@ -1,4 +1,4 @@
-import 'package:iotmcc_mobile/data/repositories/riwayat_repository.dart';
+import 'package:viotmec_mobile/data/repositories/riwayat_repository.dart';
 import 'base_riwayat_provider.dart';
 
 class RiwayatPerebusanProvider extends BaseRiwayatProvider {

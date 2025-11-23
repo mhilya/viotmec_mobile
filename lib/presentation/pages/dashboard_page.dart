@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/fermentasi_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/gudang_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/pengeringan_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/perebusan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/fermentasi_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
+// import 'package:viotmec_mobile/presentation/providers/perebusan_provider.dart';
 // import 'package:provider/provider.dart';
-// import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
+// import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -53,13 +54,13 @@ class _DashboardPageState extends State<DashboardPage> {
   /// Dipanggil dari metode build() ketika activeGudangId berubah.
   void _fetchRoomData(String activeGudangId) {
     // Gunakan context.read untuk memanggil fungsi
-    final perebusanProvider = context.read<PerebusanProvider>();
+    final blanchingProvider = context.read<BlanchingProvider>();
     final fermentasiProvider = context.read<FermentasiProvider>();
     final pengeringanProvider = context.read<PengeringanProvider>();
 
     // Ambil data untuk semua ruangan secara paralel
     Future.wait([
-      perebusanProvider.fetchData(activeGudangId),
+      blanchingProvider.fetchData(activeGudangId),
       fermentasiProvider.fetchData(activeGudangId),
       pengeringanProvider.fetchData(activeGudangId),
     ]);
@@ -70,7 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // Gunakan context.watch untuk mendengarkan perubahan state
     final userProvider = context.watch<UserProvider>();
     final gudangProvider = context.watch<GudangProvider>();
-    final perebusanProvider = context.watch<PerebusanProvider>();
+    final blanchingProvider = context.watch<BlanchingProvider>();
     final fermentasiProvider = context.watch<FermentasiProvider>();
     final pengeringanProvider = context.watch<PengeringanProvider>();
 
@@ -105,62 +106,62 @@ class _DashboardPageState extends State<DashboardPage> {
             _buildHeader(userProvider),
             const SizedBox(height: 24),
             // --- KARTU PEREBUSAN (DINAMIS) ---
-            _buildRoomCard(
-              title: 'Ruang Blanching',
-              statusColor: const Color(0xFF34A853),
-              icon: Icons.local_fire_department_outlined,
-              children: [
-                _buildInfoRow(
-                  'Suhu',
-                  '${perebusanProvider.dataAvgSuhuPagi}° C',
-                  isLoading: perebusanProvider.isLoading,
-                ),
-                // Timer data tidak ada di model baru, jadi saya komentari
-                // _buildInfoRow('Timer', '02:30:15'), 
-                _buildTimerControls(), // Tombol tetap ada
-              ],
-            ),
-            const SizedBox(height: 16),
+            // _buildRoomCard(
+            //   title: 'Ruang Blanching',
+            //   statusColor: const Color(0xFF34A853),
+            //   icon: Icons.local_fire_department_outlined,
+            //   children: [
+            //     _buildInfoRow(
+            //       'Suhu',
+            //       '${perebusanProvider.dataAvgSuhuPagi}° C',
+            //       isLoading: perebusanProvider.isLoading,
+            //     ),
+            //     // Timer data tidak ada di model baru, jadi saya komentari
+            //     // _buildInfoRow('Timer', '02:30:15'), 
+            //     _buildTimerControls(), // Tombol tetap ada
+            //   ],
+            // ),
+            // const SizedBox(height: 16),
             // --- KARTU FERMENTASI (DINAMIS) ---
-            _buildRoomCard(
-              title: 'Ruang Fermentasi',
-              statusColor: const Color(0xFFFFC107),
-              icon: Icons.science_outlined,
-              children: [
-                _buildInfoRow(
-                  'Suhu',
-                  '${fermentasiProvider.dataAvgSuhu}° C',
-                  isLoading: fermentasiProvider.isLoading,
-                ),
-                _buildInfoRow(
-                  'Kelembapan',
-                  '${fermentasiProvider.dataAvgKelembaban}%',
-                  isLoading: fermentasiProvider.isLoading,
-                ),
-              ],
-            ),
+            // _buildRoomCard(
+            //   title: 'Ruang Fermentasi',
+            //   statusColor: const Color(0xFFFFC107),
+            //   icon: Icons.science_outlined,
+            //   children: [
+            //     _buildInfoRow(
+            //       'Suhu',
+            //       '${fermentasiProvider.dataAvgSuhu}° C',
+            //       isLoading: fermentasiProvider.isLoading,
+            //     ),
+            //     _buildInfoRow(
+            //       'Kelembapan',
+            //       '${fermentasiProvider.dataAvgKelembaban}%',
+            //       isLoading: fermentasiProvider.isLoading,
+            //     ),
+            //   ],
+            // ),
             const SizedBox(height: 16),
             // --- KARTU PENGERINGAN (DINAMIS) ---
-            _buildRoomCard(
-              title: 'Ruang Pengeringan',
-              statusColor: const Color(0xFF2196F3),
-              icon: Icons.air_outlined,
-              children: [
-                _buildInfoRow(
-                  'Suhu',
-                  // Data pengeringan punya struktur model yang sedikit berbeda
-                  '${pengeringanProvider.data?.suhuData.dataAvgSuhu ?? '...'}° C',
-                  isLoading: pengeringanProvider.isLoading,
-                ),
-                _buildInfoRow(
-                  'Kelembapan',
-                  '${pengeringanProvider.data?.suhuData.dataAvgKelembaban ?? '...'}%',
-                  isLoading: pengeringanProvider.isLoading,
-                ),
-                // Kirim provider dan gudangId ke widget switch
-                _buildBlowerSwitchRow(pengeringanProvider, activeGudangId),
-              ],
-            ),
+            // _buildRoomCard(
+            //   title: 'Ruang Pengeringan',
+            //   statusColor: const Color(0xFF2196F3),
+            //   icon: Icons.air_outlined,
+            //   children: [
+            //     _buildInfoRow(
+            //       'Suhu',
+            //       // Data pengeringan punya struktur model yang sedikit berbeda
+            //       '${pengeringanProvider.data?.suhuData.dataAvgSuhu ?? '...'}° C',
+            //       isLoading: pengeringanProvider.isLoading,
+            //     ),
+            //     _buildInfoRow(
+            //       'Kelembapan',
+            //       '${pengeringanProvider.data?.suhuData.dataAvgKelembaban ?? '...'}%',
+            //       isLoading: pengeringanProvider.isLoading,
+            //     ),
+            //     // Kirim provider dan gudangId ke widget switch
+            //     _buildBlowerSwitchRow(pengeringanProvider, activeGudangId),
+            //   ],
+            // ),
           ],
         ),
       ),
@@ -308,38 +309,38 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // Modifikasi untuk menerima PengeringanProvider
-  Widget _buildBlowerSwitchRow(
-      PengeringanProvider provider, String? gudangId) {
-    // Ambil state dari provider
-    final bool isBlowerLoading = provider.isTogglingBlower;
-    final bool isBlowerOn = provider.data?.blowerData.statusBlower == 1;
+  // Widget _buildBlowerSwitchRow(
+  //     PengeringanProvider provider, String? gudangId) {
+  //   // Ambil state dari provider
+  //   final bool isBlowerLoading = provider.isTogglingBlower;
+  //   final bool isBlowerOn = provider.data?.blowerData.statusBlower == 1;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Blower',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Switch(
-            value: isBlowerOn,
-            onChanged: (isBlowerLoading || gudangId == null)
-                ? null // Nonaktifkan switch jika sedang loading atau gudangId null
-                : (value) {
-                    // Panggil method toggleBlower dari provider
-                    provider.toggleBlower(gudangId);
-                  },
-            activeColor: Theme.of(context).colorScheme.primary,
-          ),
-        ],
-      ),
-    );
-  }
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 8.0),
+  //     child: Row(
+  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //       children: [
+  //         Text(
+  //           'Blower',
+  //           style: TextStyle(
+  //             fontSize: 14,
+  //             color: Colors.grey.shade600,
+  //           ),
+  //         ),
+  //         Switch(
+  //           value: isBlowerOn,
+  //           onChanged: (isBlowerLoading || gudangId == null)
+  //               ? null // Nonaktifkan switch jika sedang loading atau gudangId null
+  //               : (value) {
+  //                   // Panggil method toggleBlower dari provider
+  //                   provider.toggleBlower(gudangId);
+  //                 },
+  //           activeColor: Theme.of(context).colorScheme.primary,
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // Widget ini tetap menggunakan state lokal karena
   // logika start/stop timer belum ada di provider

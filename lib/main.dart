@@ -1,29 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/core/network/api_service.dart';
-import 'package:iotmcc_mobile/core/network/dio_client.dart';
-import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
-import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
-import 'package:iotmcc_mobile/data/repositories/pengeringan_repository.dart';
-import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/gudang_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/pengeringan_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/perebusan_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/fermentasi_provider.dart';
-import 'package:iotmcc_mobile/routes/app_routes.dart';
-import 'package:iotmcc_mobile/routes/route_generator.dart';
+import 'package:viotmec_mobile/core/network/api_service.dart';
+import 'package:viotmec_mobile/core/network/dio_client.dart';
+import 'package:viotmec_mobile/core/utils/shared_preferences.dart';
+import 'package:viotmec_mobile/data/repositories/auth_repository.dart';
+import 'package:viotmec_mobile/data/repositories/blanching_repository.dart';
+import 'package:viotmec_mobile/data/repositories/pengeringan_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/auth_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/fermentasi_provider.dart';
+import 'package:viotmec_mobile/routes/app_routes.dart';
+import 'package:viotmec_mobile/routes/route_generator.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
-import 'package:iotmcc_mobile/data/repositories/user_repository.dart';
-import 'package:iotmcc_mobile/data/repositories/perebusan_repository.dart';
-import 'package:iotmcc_mobile/presentation/providers/user_provider.dart';
-import 'package:iotmcc_mobile/data/repositories/gudang_repository.dart';
-import 'package:iotmcc_mobile/data/repositories/fermentasi_repository.dart';
-import 'package:iotmcc_mobile/data/repositories/riwayat_repository.dart';
-import 'package:iotmcc_mobile/presentation/providers/riwayat_perebusan_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/riwayat_fermentasi_provider.dart';
-import 'package:iotmcc_mobile/presentation/providers/riwayat_pengeringan_provider.dart';
+import 'package:viotmec_mobile/data/repositories/user_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
+import 'package:viotmec_mobile/data/repositories/gudang_repository.dart';
+import 'package:viotmec_mobile/data/repositories/fermentasi_repository.dart';
+import 'package:viotmec_mobile/data/repositories/riwayat_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_perebusan_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_fermentasi_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_pengeringan_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Handling a background message: ${message.messageId}');
+}
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // Setup Dependencies
   final dio = Dio();
   final dioClient = DioClient(dio);
@@ -31,7 +42,8 @@ void main() {
   final apiService = ApiService(dioClient, prefsHelper);
   final authRepository = AuthRepository(apiService, prefsHelper);
   final userRepository = UserRepository(apiService);
-  final perebusanRepository = PerebusanRepository(apiService);
+  final blanchingRepository = BlanchingRepository(apiService);
+  // final perebusanRepository = PerebusanRepository(apiService);
   final gudangRepository = GudangRepository(apiService);
   final fermentasiRepository = FermentasiRepository(apiService);
   final pengeringanRepository = PengeringanRepository(apiService);
@@ -47,7 +59,8 @@ void main() {
           create: (context) => UserProvider(userRepository),
         ),
         ChangeNotifierProvider(
-          create: (context) => PerebusanProvider(perebusanRepository),
+          // create: (context) => PerebusanProvider(perebusanRepository),
+          create: (context) => BlanchingProvider(blanchingRepository),
         ),
         ChangeNotifierProvider(
           create: (context) => GudangProvider(gudangRepository),

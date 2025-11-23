@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:iotmcc_mobile/presentation/providers/auth_provider.dart';
-import 'package:iotmcc_mobile/routes/app_routes.dart';
+import 'package:viotmec_mobile/presentation/providers/auth_provider.dart';
+import 'package:viotmec_mobile/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {

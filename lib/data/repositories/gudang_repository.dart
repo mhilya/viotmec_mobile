@@ -1,5 +1,5 @@
-import 'package:iotmcc_mobile/core/network/api_service.dart';
-import 'package:iotmcc_mobile/data/models/gudang_model.dart';
+import 'package:viotmec_mobile/core/network/api_service.dart';
+import 'package:viotmec_mobile/data/models/gudang_model.dart';
 
 class GudangRepository {
   final ApiService _apiService;

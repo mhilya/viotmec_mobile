@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/presentation/pages/dashboard_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/laporan_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/profile_page.dart';
-import 'package:iotmcc_mobile/presentation/pages/riwayat_page.dart';
+import 'package:viotmec_mobile/presentation/pages/dashboard_page.dart';
+import 'package:viotmec_mobile/presentation/pages/laporan_page.dart';
+import 'package:viotmec_mobile/presentation/pages/profile_page.dart';
+import 'package:viotmec_mobile/presentation/pages/riwayat_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});

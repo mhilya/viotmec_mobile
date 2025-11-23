@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:iotmcc_mobile/data/models/login_response.dart';
-import 'package:iotmcc_mobile/data/repositories/auth_repository.dart';
-import 'package:iotmcc_mobile/core/utils/shared_preferences.dart';
+import 'package:viotmec_mobile/data/models/login_response.dart';
+import 'package:viotmec_mobile/data/repositories/auth_repository.dart';
+import 'package:viotmec_mobile/core/utils/shared_preferences.dart';
 
 enum AuthState { initial, loading, success, error, logout }
 

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:iotmcc_mobile/core/constants/api_constant.dart';
+import 'package:viotmec_mobile/core/constants/api_constant.dart';
 
 class DioClient {
   final Dio _dio;
