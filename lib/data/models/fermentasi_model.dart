@@ -19,12 +19,14 @@ class FermentasiData {
     return FermentasiData(
       status: json['status'] ?? false,
       dataSensor: List<SensorData>.from(
-        (json['dataSensor'] as List<dynamic>? ?? [])
-            .map((x) => SensorData.fromJson(x as Map<String, dynamic>)),
+        (json['dataSensor'] as List<dynamic>? ?? []).map(
+          (x) => SensorData.fromJson(x as Map<String, dynamic>),
+        ),
       ),
       dataWaktuSensor: List<WaktuSensorData>.from(
-        (json['dataWaktuSensor'] as List<dynamic>? ?? [])
-            .map((x) => WaktuSensorData.fromJson(x as Map<String, dynamic>)),
+        (json['dataWaktuSensor'] as List<dynamic>? ?? []).map(
+          (x) => WaktuSensorData.fromJson(x as Map<String, dynamic>),
+        ),
       ),
       statusRuangan: _parseStatusRuangan(json['statusRuangan']),
       currentSuhu: json['currentSuhu']?.toString() ?? '0',
@@ -71,21 +73,28 @@ class FermentasiData {
   }
 
   List<Map<String, dynamic>> _combineSensorData(
-      SensorData suhu, SensorData kelembaban, WaktuSensorData waktu) {
+    SensorData suhu,
+    SensorData kelembaban,
+    WaktuSensorData waktu,
+  ) {
     final List<Map<String, dynamic>> combinedData = [];
 
-    final minLength = [suhu.value.length, kelembaban.value.length, waktu.value.length]
-        .reduce((a, b) => a < b ? a : b);
+    final minLength = [
+      suhu.value.length,
+      kelembaban.value.length,
+      waktu.value.length,
+    ].reduce((a, b) => a < b ? a : b);
 
     for (int i = 0; i < minLength; i++) {
       combinedData.add({
         'waktu': waktu.value[i],
         'suhu': suhu.value[i],
         'kelembaban': kelembaban.value[i],
-        'stddev_suhu': suhu.stddev.isNotEmpty && i < suhu.stddev.length 
-            ? suhu.stddev[i] 
+        'stddev_suhu': suhu.stddev.isNotEmpty && i < suhu.stddev.length
+            ? suhu.stddev[i]
             : null,
-        'stddev_kelembaban': kelembaban.stddev.isNotEmpty && i < kelembaban.stddev.length
+        'stddev_kelembaban':
+            kelembaban.stddev.isNotEmpty && i < kelembaban.stddev.length
             ? kelembaban.stddev[i]
             : null,
       });
@@ -100,14 +109,44 @@ class FermentasiData {
   double get avgKelembaban2 => getSensorByFlag('kelembaban_2')?.avg ?? 0.0;
 
   List<StdDevData> get stddevSuhu1 => getSensorByFlag('suhu_1')?.stddev ?? [];
-  List<StdDevData> get stddevKelembaban1 => getSensorByFlag('kelembaban_1')?.stddev ?? [];
+  List<StdDevData> get stddevKelembaban1 =>
+      getSensorByFlag('kelembaban_1')?.stddev ?? [];
   List<StdDevData> get stddevSuhu2 => getSensorByFlag('suhu_2')?.stddev ?? [];
-  List<StdDevData> get stddevKelembaban2 => getSensorByFlag('kelembaban_2')?.stddev ?? [];
+  List<StdDevData> get stddevKelembaban2 =>
+      getSensorByFlag('kelembaban_2')?.stddev ?? [];
 
-  double get latestSuhu1 => getSensorByFlag('suhu_1')?.value.first ?? 0.0;
-  double get latestKelembaban1 => getSensorByFlag('kelembaban_1')?.value.first ?? 0.0;
-  double get latestSuhu2 => getSensorByFlag('suhu_2')?.value.first ?? 0.0;
-  double get latestKelembaban2 => getSensorByFlag('kelembaban_2')?.value.first ?? 0.0;
+  // double get latestSuhu1 => getSensorByFlag('suhu_1')?.value.first ?? 0.0;
+  // double get latestKelembaban1 => getSensorByFlag('kelembaban_1')?.value.first ?? 0.0;
+  // double get latestSuhu2 => getSensorByFlag('suhu_2')?.value.first ?? 0.0;
+  // double get latestKelembaban2 => getSensorByFlag('kelembaban_2')?.value.first ?? 0.0;
+
+  double get latestSuhu1 {
+    final sensor = getSensorByFlag('suhu_1');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestKelembaban1 {
+    final sensor = getSensorByFlag('kelembaban_1');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestSuhu2 {
+    final sensor = getSensorByFlag('suhu_2');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestKelembaban2 {
+    final sensor = getSensorByFlag('kelembaban_2');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
 
   static int _parseStatusRuangan(dynamic status) {
     if (status == null) return 0;
@@ -137,13 +176,15 @@ class SensorData {
       type: json['type'] ?? 'sensor',
       flagSensor: json['flag_sensor'] ?? '',
       value: List<double>.from(
-        (json['value'] as List<dynamic>? ?? [])
-            .map((x) => double.tryParse(x.toString()) ?? 0.0),
+        (json['value'] as List<dynamic>? ?? []).map(
+          (x) => double.tryParse(x.toString()) ?? 0.0,
+        ),
       ),
       avg: double.tryParse(json['avg']?.toString() ?? '0') ?? 0.0,
       stddev: List<StdDevData>.from(
-        (json['stddev'] as List<dynamic>? ?? [])
-            .map((x) => StdDevData.fromJson(x)),
+        (json['stddev'] as List<dynamic>? ?? []).map(
+          (x) => StdDevData.fromJson(x),
+        ),
       ),
     );
   }
@@ -173,15 +214,14 @@ class StdDevData {
   final int timestamp;
   final double value;
 
-  StdDevData({
-    required this.timestamp,
-    required this.value,
-  });
+  StdDevData({required this.timestamp, required this.value});
 
   factory StdDevData.fromJson(dynamic json) {
     if (json is List && json.length >= 2) {
       return StdDevData(
-        timestamp: json[0] is int ? json[0] : int.tryParse(json[0].toString()) ?? 0,
+        timestamp: json[0] is int
+            ? json[0]
+            : int.tryParse(json[0].toString()) ?? 0,
         value: double.tryParse(json[1].toString()) ?? 0.0,
       );
     }

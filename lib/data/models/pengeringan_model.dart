@@ -122,20 +122,33 @@ class PengeringanData {
   List<StdDevData> get stddevKelembaban2 =>
       getSensorByFlag('kelembaban_2')?.stddev ?? [];
 
-  double get latestSuhu1 => getSensorByFlag('suhu_1')?.value.isNotEmpty == true
-      ? getSensorByFlag('suhu_1')!.value.first
-      : 0.0;
-  double get latestKelembaban1 =>
-      getSensorByFlag('kelembaban_1')?.value.isNotEmpty == true
-      ? getSensorByFlag('kelembaban_1')!.value.first
-      : 0.0;
-  double get latestSuhu2 => getSensorByFlag('suhu_2')?.value.isNotEmpty == true
-      ? getSensorByFlag('suhu_2')!.value.first
-      : 0.0;
-  double get latestKelembaban2 =>
-      getSensorByFlag('kelembaban_2')?.value.isNotEmpty == true
-      ? getSensorByFlag('kelembaban_2')!.value.first
-      : 0.0;
+  double get latestSuhu1 {
+    final sensor = getSensorByFlag('suhu_1');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestKelembaban1 {
+    final sensor = getSensorByFlag('kelembaban_1');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestSuhu2 {
+    final sensor = getSensorByFlag('suhu_2');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
+
+  double get latestKelembaban2 {
+    final sensor = getSensorByFlag('kelembaban_2');
+    return (sensor != null && sensor.value.isNotEmpty)
+        ? sensor.value.first
+        : 0.0;
+  }
 
   static int _parseStatusRuangan(dynamic status) {
     if (status == null) return 0;
