@@ -10,6 +10,9 @@ import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/fermentasi_provider.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_provider.dart';
+import 'package:viotmec_mobile/data/repositories/riwayat_notifikasi_repository.dart';
+import 'package:viotmec_mobile/presentation/providers/riwayat_notifikasi_provider.dart';
 import 'package:viotmec_mobile/routes/app_routes.dart';
 import 'package:viotmec_mobile/routes/route_generator.dart';
 import 'package:provider/provider.dart';
@@ -19,13 +22,10 @@ import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
 import 'package:viotmec_mobile/data/repositories/gudang_repository.dart';
 import 'package:viotmec_mobile/data/repositories/fermentasi_repository.dart';
 import 'package:viotmec_mobile/data/repositories/riwayat_repository.dart';
-import 'package:viotmec_mobile/presentation/providers/riwayat_perebusan_provider.dart';
-import 'package:viotmec_mobile/presentation/providers/riwayat_fermentasi_provider.dart';
-import 'package:viotmec_mobile/presentation/providers/riwayat_pengeringan_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-// Handler Notifikasi Background
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -34,6 +34,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('id_ID', null);
+
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -48,6 +51,7 @@ void main() async {
   final fermentasiRepository = FermentasiRepository(apiService);
   final pengeringanRepository = PengeringanRepository(apiService);
   final riwayatRepository = RiwayatRepository(apiService);
+  final riwayatNotifikasiRepository = RiwayatNotifikasiRepository(apiService);
 
   runApp(
     MultiProvider(
@@ -59,7 +63,6 @@ void main() async {
           create: (context) => UserProvider(userRepository),
         ),
         ChangeNotifierProvider(
-          // create: (context) => PerebusanProvider(perebusanRepository),
           create: (context) => BlanchingProvider(blanchingRepository),
         ),
         ChangeNotifierProvider(
@@ -71,26 +74,11 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => PengeringanProvider(pengeringanRepository),
         ),
-        ChangeNotifierProxyProvider<GudangProvider, RiwayatPerebusanProvider>(
-          create: (context) => RiwayatPerebusanProvider(riwayatRepository),
-          update: (context, gudangProvider, riwayatProvider) {
-            riwayatProvider?.updateGudang(gudangProvider);
-            return riwayatProvider!;
-          },
+        ChangeNotifierProvider(
+          create: (context) => RiwayatProvider(riwayatRepository),
         ),
-        ChangeNotifierProxyProvider<GudangProvider, RiwayatFermentasiProvider>(
-          create: (context) => RiwayatFermentasiProvider(riwayatRepository),
-          update: (context, gudangProvider, riwayatProvider) {
-            riwayatProvider?.updateGudang(gudangProvider);
-            return riwayatProvider!;
-          },
-        ),
-        ChangeNotifierProxyProvider<GudangProvider, RiwayatPengeringanProvider>(
-          create: (context) => RiwayatPengeringanProvider(riwayatRepository),
-          update: (context, gudangProvider, riwayatProvider) {
-            riwayatProvider?.updateGudang(gudangProvider);
-            return riwayatProvider!;
-          },
+        ChangeNotifierProvider(
+          create: (context) => RiwayatNotifikasiProvider(riwayatNotifikasiRepository),
         ),
       ],
       child: const MyApp(),
