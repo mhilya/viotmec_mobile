@@ -6,9 +6,7 @@ import 'package:viotmec_mobile/presentation/providers/gudang_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/pengeringan_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/blanching_provider.dart';
 import 'package:viotmec_mobile/core/network/fcm_service.dart';
-// import 'package:viotmec_mobile/presentation/providers/perebusan_provider.dart';
-// import 'package:provider/provider.dart';
-// import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
+import 'package:viotmec_mobile/presentation/pages/notifikasi_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,164 +16,126 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // Variabel lokal untuk timer, karena provider belum menanganinya
-  bool isTimerRunning = false;
-
-  // Variabel untuk melacak ID gudang yang terakhir diambil datanya
-  // Ini penting untuk mencegah fetch berulang kali saat build
-  String? _lastFetchedGudangId;
+  String? _lastLoadedGudangId;
 
   @override
   void initState() {
     super.initState();
-    // Load data awal saat halaman pertama kali dibuka
-    // (setelah frame pertama selesai di-render)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
       FcmService().initNotifications();
     });
   }
 
-  /// Memuat data yang tidak bergantung pada gudang (User)
-  /// dan data gudang itu sendiri (GudangProvider).
   Future<void> _loadInitialData() async {
-    // Gunakan context.read di dalam initState/metode helper
     final userProvider = context.read<UserProvider>();
     final gudangProvider = context.read<GudangProvider>();
 
-    // Ambil profil user dan daftar gudang secara bersamaan
-    await Future.wait([
-      userProvider.getUserProfile(),
-      gudangProvider.loadGudangList(),
-    ]);
-    // Setelah ini, GudangProvider akan memiliki activeGudangId
-    // yang akan memicu pengambilan data ruangan di metode build.
+    await userProvider.getUserProfile();
+    await gudangProvider.loadGudangList();
+    
+    // Fetch data awal jika sudah ada gudang aktif default
+    if (gudangProvider.activeGudangId != null) {
+      _fetchRoomData(gudangProvider.activeGudangId!);
+    }
   }
 
-  /// Mengambil data untuk semua ruangan berdasarkan gudangId yang aktif.
-  /// Dipanggil dari metode build() ketika activeGudangId berubah.
-  void _fetchRoomData(String activeGudangId) {
-    // Gunakan context.read untuk memanggil fungsi
+  Future<void> _fetchRoomData(String activeGudangId) async {
+    if (!mounted) return;
+    _lastLoadedGudangId = activeGudangId;
+    
     final blanchingProvider = context.read<BlanchingProvider>();
     final fermentasiProvider = context.read<FermentasiProvider>();
     final pengeringanProvider = context.read<PengeringanProvider>();
 
-    // Ambil data untuk semua ruangan secara paralel
-    Future.wait([
+    // Fetch parallel agar efisien
+    await Future.wait([
       blanchingProvider.fetchData(activeGudangId),
       fermentasiProvider.fetchData(activeGudangId),
       pengeringanProvider.fetchData(activeGudangId),
     ]);
   }
 
+  Future<void> _onRefresh() async {
+    final gudangProvider = context.read<GudangProvider>();
+    if (gudangProvider.activeGudangId != null) {
+      await _fetchRoomData(gudangProvider.activeGudangId!);
+    } else {
+      await gudangProvider.loadGudangList();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Gunakan context.watch untuk mendengarkan perubahan state
-    final userProvider = context.watch<UserProvider>();
-    final gudangProvider = context.watch<GudangProvider>();
-    final blanchingProvider = context.watch<BlanchingProvider>();
-    final fermentasiProvider = context.watch<FermentasiProvider>();
-    final pengeringanProvider = context.watch<PengeringanProvider>();
-
-    // LOGIKA INTI:
-    // Dapatkan ID gudang yang aktif saat ini dari GudangProvider
-    final activeGudangId = gudangProvider.activeGudangId;
-
-    // Jika gudangId aktif berubah (atau baru saja dimuat),
-    // ambil data baru untuk semua ruangan.
-    if (activeGudangId != null && activeGudangId != _lastFetchedGudangId) {
-      _lastFetchedGudangId = activeGudangId;
-      // Kita panggil ini di post-frame callback agar tidak menyebabkan
-      // error "setState/notifyListeners during build"
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _fetchRoomData(activeGudangId));
-    }
-
-    // Tampilkan loading spinner utama jika daftar gudang sedang dimuat
-    // (karena semua data lain bergantung padanya)
-    if (gudangProvider.isLoading && !gudangProvider.hasActiveGudang) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    // Tampilan dashboard utama
     return Scaffold(
+      backgroundColor: Colors.grey.shade50, 
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20.0),
-          children: [
-            _buildHeader(userProvider),
-            const SizedBox(height: 24),
-            // --- KARTU PEREBUSAN (DINAMIS) ---
-            // _buildRoomCard(
-            //   title: 'Ruang Blanching',
-            //   statusColor: const Color(0xFF34A853),
-            //   icon: Icons.local_fire_department_outlined,
-            //   children: [
-            //     _buildInfoRow(
-            //       'Suhu',
-            //       '${perebusanProvider.dataAvgSuhuPagi}° C',
-            //       isLoading: perebusanProvider.isLoading,
-            //     ),
-            //     // Timer data tidak ada di model baru, jadi saya komentari
-            //     // _buildInfoRow('Timer', '02:30:15'), 
-            //     _buildTimerControls(), // Tombol tetap ada
-            //   ],
-            // ),
-            // const SizedBox(height: 16),
-            // --- KARTU FERMENTASI (DINAMIS) ---
-            // _buildRoomCard(
-            //   title: 'Ruang Fermentasi',
-            //   statusColor: const Color(0xFFFFC107),
-            //   icon: Icons.science_outlined,
-            //   children: [
-            //     _buildInfoRow(
-            //       'Suhu',
-            //       '${fermentasiProvider.dataAvgSuhu}° C',
-            //       isLoading: fermentasiProvider.isLoading,
-            //     ),
-            //     _buildInfoRow(
-            //       'Kelembapan',
-            //       '${fermentasiProvider.dataAvgKelembaban}%',
-            //       isLoading: fermentasiProvider.isLoading,
-            //     ),
-            //   ],
-            // ),
-            const SizedBox(height: 16),
-            // --- KARTU PENGERINGAN (DINAMIS) ---
-            // _buildRoomCard(
-            //   title: 'Ruang Pengeringan',
-            //   statusColor: const Color(0xFF2196F3),
-            //   icon: Icons.air_outlined,
-            //   children: [
-            //     _buildInfoRow(
-            //       'Suhu',
-            //       // Data pengeringan punya struktur model yang sedikit berbeda
-            //       '${pengeringanProvider.data?.suhuData.dataAvgSuhu ?? '...'}° C',
-            //       isLoading: pengeringanProvider.isLoading,
-            //     ),
-            //     _buildInfoRow(
-            //       'Kelembapan',
-            //       '${pengeringanProvider.data?.suhuData.dataAvgKelembaban ?? '...'}%',
-            //       isLoading: pengeringanProvider.isLoading,
-            //     ),
-            //     // Kirim provider dan gudangId ke widget switch
-            //     _buildBlowerSwitchRow(pengeringanProvider, activeGudangId),
-            //   ],
-            // ),
-          ],
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Consumer5<UserProvider, GudangProvider, BlanchingProvider,
+                FermentasiProvider, PengeringanProvider>(
+              builder: (context, userProv, gudangProv, blanchingProv,
+                  fermentasiProv, pengeringanProv, _) {
+                
+                // Cek perubahan gudang via provider (jika berubah dari tempat lain)
+                if (gudangProv.activeGudangId != null && 
+                    gudangProv.activeGudangId != _lastLoadedGudangId) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _fetchRoomData(gudangProv.activeGudangId!);
+                    });
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(userProv, context), // Pass context untuk navigasi
+                    const SizedBox(height: 24),
+                    _buildGudangDropdown(gudangProv),
+                    const SizedBox(height: 24),
+                    
+                    if (gudangProv.isLoading && !gudangProv.hasActiveGudang)
+                      const Center(child: CircularProgressIndicator())
+                    else if (!gudangProv.hasActiveGudang)
+                       _buildNoGudangState()
+                    else ...[
+                      // 1. Blanching Card
+                      _buildBlanchingCard(blanchingProv, gudangProv.activeGudangId),
+                      const SizedBox(height: 20),
+                      
+                      // 2. Fermentasi Card
+                      _buildFermentasiCard(fermentasiProv),
+                      const SizedBox(height: 20),
+                      
+                      // 3. Pengeringan Card
+                      _buildPengeringanCard(pengeringanProv, gudangProv.activeGudangId),
+                      const SizedBox(height: 30),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(UserProvider userProvider) {
+  Widget _buildHeader(UserProvider userProvider, BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 26,
-          backgroundImage: AssetImage('assets/images/icon.jpg'),
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.blue.shade100, width: 2),
+          ),
+          child: const CircleAvatar(
+            radius: 24,
+            backgroundImage: AssetImage('assets/images/icon.jpg'),
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -183,61 +143,321 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                // Data user dinamis dari UserProvider
-                'Halo, ${userProvider.user?.name ?? 'Loading...'}',
+                'Halo, ${userProvider.user?.name ?? 'Pengguna'}',
                 style: const TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.black87,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
               const Text(
                 'Selamat Datang Kembali!',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Colors.grey,
                 ),
               ),
             ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        IconButton(
+          onPressed: () {
+            // --- NAVIGASI KE HALAMAN NOTIFIKASI ---
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HalamanNotifikasi(),
+              ),
+            );
+          },
+          icon: Icon(Icons.notifications_outlined, color: Colors.grey.shade700),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            padding: const EdgeInsets.all(12),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade200)),
           ),
-          child: IconButton(
-            icon: const Icon(
-              Icons.notifications_none_outlined,
-              size: 24,
-              color: Colors.black54,
-            ),
-            onPressed: () {},
-          ),
-        ),
+        )
       ],
     );
   }
 
-  Widget _buildRoomCard({
-    required String title,
-    required Color statusColor,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
+  Widget _buildGudangDropdown(GudangProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(20.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.grey.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: provider.activeGudangId,
+          isExpanded: true,
+          hint: const Text('Pilih Gudang'),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          items: provider.gudangList.map((gudang) {
+            return DropdownMenuItem(
+              value: gudang.idGudang,
+              child: Text(
+                gudang.namaGudang,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              provider.setActiveGudang(value);
+              _fetchRoomData(value);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  // --- COMPONENT CARDS ---
+
+  Widget _buildBlanchingCard(BlanchingProvider provider, String? gudangId) {
+    final timerData = provider.timerResponse?.getTimerByFlag('timer_1');
+    final isRunning = timerData?.isRunning ?? false;
+    final sisaTimer = timerData?.sisaTimer ?? 0.0;
+    
+    final minutes = (sisaTimer ~/ 60).toString().padLeft(2, '0');
+    final seconds = (sisaTimer % 60).toInt().toString().padLeft(2, '0');
+
+    return _buildGradientCard(
+      title: 'Blanching (Perebusan)',
+      subtitle: provider.isLoading ? 'Memuat data...' : 'Status: ${isRunning ? "Proses Berjalan" : "Standby"}',
+      icon: Icons.water_drop_outlined,
+      gradientColors: const [Color(0xFF43A047), Color(0xFF66BB6A)],
+      content: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItemCompact(
+                'Suhu Air',
+                '${provider.blanchingData?.rataRataSuhu.toStringAsFixed(1) ?? '0'}°C',
+                Icons.thermostat,
+                Colors.white,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$minutes:$seconds',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: (provider.isLoading || gudangId == null) 
+                  ? null 
+                  : () => provider.toggleTimer(gudangId),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: isRunning ? Colors.red : const Color(0xFF43A047),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(
+                isRunning ? 'Hentikan Timer' : 'Mulai Timer',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFermentasiCard(FermentasiProvider provider) {
+    final isActive = provider.statusRuangan == 1;
+    
+    return _buildGradientCard(
+      title: 'Fermentasi',
+      subtitle: isActive ? 'Ruangan Aktif' : 'Ruangan Non-Aktif',
+      icon: Icons.science_outlined,
+      gradientColors: const [Color(0xFFFFA726), Color(0xFFFF7043)],
+      content: Row(
+        children: [
+          Expanded(
+            child: _buildStatItemCompact(
+              'Rata-rata Suhu',
+              '${provider.currentSuhu}°C',
+              Icons.thermostat,
+              Colors.white,
+            ),
+          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
+          Expanded(
+            child: _buildStatItemCompact(
+              'Kelembaban',
+              '${provider.currentKelembaban}%',
+              Icons.water_drop,
+              Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPengeringanCard(PengeringanProvider provider, String? gudangId) {
+    return _buildGradientCard(
+      title: 'Pengeringan',
+      subtitle: 'Monitoring & Kontrol',
+      icon: Icons.air,
+      gradientColors: const [Color(0xFF42A5F5), Color(0xFF1E88E5)],
+      content: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatItemCompact(
+                  'Suhu',
+                  '${provider.currentSuhu}°C',
+                  Icons.thermostat,
+                  Colors.white,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
+              Expanded(
+                child: _buildStatItemCompact(
+                  'Kelembaban',
+                  '${provider.currentKelembaban}%',
+                  Icons.water_drop,
+                  Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white24),
+          const SizedBox(height: 8),
+          
+          if (provider.availableBlowers.isEmpty)
+             const Text('Tidak ada blower terdeteksi', style: TextStyle(color: Colors.white70, fontSize: 12)),
+             
+          ...provider.availableBlowers.map((blowerMeta) {
+            final isBlowerActive = provider.isBlowerActive(blowerMeta.idSensor);
+            final isToggling = provider.isBlowerToggling(blowerMeta.idSensor);
+            final label = blowerMeta.flagSensor.replaceAll('_', ' ').toUpperCase();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.wind_power, 
+                        color: isBlowerActive ? Colors.yellowAccent : Colors.white70, 
+                        size: 20
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 30,
+                    child: isToggling 
+                      ? const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Switch(
+                          value: isBlowerActive,
+                          activeColor: Colors.white,
+                          activeTrackColor: Colors.greenAccent.shade400,
+                          inactiveThumbColor: Colors.grey.shade300,
+                          inactiveTrackColor: Colors.black26,
+                          onChanged: (value) {
+                             provider.toggleBlower(blowerMeta.idSensor);
+                          },
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradientCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required Widget content,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -245,142 +465,93 @@ class _DashboardPageState extends State<DashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: statusColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: statusColor,
+                  color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const Divider(height: 28, thickness: 1, color: Color(0xFFF0F0F0)),
-          ...children,
+          const SizedBox(height: 20),
+          content,
         ],
       ),
     );
   }
 
-  // Tambahkan parameter isLoading
-  Widget _buildInfoRow(String label, String value,
-      {bool isLoading = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildStatItemCompact(String label, String value, IconData icon, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color.withOpacity(0.8), size: 20),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                color: color.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNoGudangState() {
+    return Center(
+      child: Column(
         children: [
+          Icon(Icons.warehouse_outlined, size: 60, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
           Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Text(
-            // Tampilkan '...' jika loading, jika tidak tampilkan value
-            isLoading ? '...' : value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
+            'Silakan pilih gudang terlebih dahulu',
+            style: TextStyle(color: Colors.grey.shade400),
           ),
         ],
       ),
-    );
-  }
-
-  // Modifikasi untuk menerima PengeringanProvider
-  // Widget _buildBlowerSwitchRow(
-  //     PengeringanProvider provider, String? gudangId) {
-  //   // Ambil state dari provider
-  //   final bool isBlowerLoading = provider.isTogglingBlower;
-  //   final bool isBlowerOn = provider.data?.blowerData.statusBlower == 1;
-
-  //   return Padding(
-  //     padding: const EdgeInsets.symmetric(vertical: 8.0),
-  //     child: Row(
-  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //       children: [
-  //         Text(
-  //           'Blower',
-  //           style: TextStyle(
-  //             fontSize: 14,
-  //             color: Colors.grey.shade600,
-  //           ),
-  //         ),
-  //         Switch(
-  //           value: isBlowerOn,
-  //           onChanged: (isBlowerLoading || gudangId == null)
-  //               ? null // Nonaktifkan switch jika sedang loading atau gudangId null
-  //               : (value) {
-  //                   // Panggil method toggleBlower dari provider
-  //                   provider.toggleBlower(gudangId);
-  //                 },
-  //           activeColor: Theme.of(context).colorScheme.primary,
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget ini tetap menggunakan state lokal karena
-  // logika start/stop timer belum ada di provider
-  Widget _buildTimerControls() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12.0),
-      child: isTimerRunning
-          ? OutlinedButton.icon(
-              icon: const Icon(Icons.stop_rounded),
-              label: const Text('Hentikan Timer'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red.shade700,
-                side: BorderSide(color: Colors.red.shade300, width: 1.5),
-                minimumSize: const Size(double.infinity, 42),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                setState(() {
-                  isTimerRunning = false;
-                });
-                // TODO: Tambahkan logika untuk MENGHENTIKAN timer via API
-              },
-            )
-          : ElevatedButton.icon(
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Mulai Timer'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 42),
-              ),
-              onPressed: () {
-                setState(() {
-                  isTimerRunning = true;
-                });
-                // TODO: Tambahkan logika untuk MEMULAI timer via API
-              },
-            ),
     );
   }
 }

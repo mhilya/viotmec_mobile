@@ -254,8 +254,11 @@ class TimerDetail {
 
   String get formattedStartTime {
     try {
-      int timestamp = int.tryParse(nilaiTimer) ?? 0;
+      double timestampDouble = double.tryParse(nilaiTimer) ?? 0.0;
+      int timestamp = timestampDouble.toInt();
+
       if (timestamp == 0) return '-';
+
       final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
       return DateFormat('HH:mm:ss').format(date);
     } catch (e) {
@@ -265,9 +268,14 @@ class TimerDetail {
 
   String get formattedEndTime {
     try {
-      int startTs = int.tryParse(nilaiTimer) ?? 0;
-      int limit = int.tryParse(limitTimer) ?? 0;
+      double startTsDouble = double.tryParse(nilaiTimer) ?? 0.0;
+      double limitDouble = double.tryParse(limitTimer) ?? 0.0;
+
+      int startTs = startTsDouble.toInt();
+      int limit = limitDouble.toInt();
+
       if (startTs == 0 || limit == 0) return '-';
+
       final date = DateTime.fromMillisecondsSinceEpoch(
         (startTs + limit) * 1000,
       );

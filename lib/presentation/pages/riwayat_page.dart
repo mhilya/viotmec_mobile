@@ -28,10 +28,10 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang sedikit abu-abu
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
-          'Riwayat', // Judul diubah
+          'Riwayat',
           style: TextStyle(
             fontFamily: 'Poppins',
             color: Colors.black87,
@@ -40,7 +40,7 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 1, // Sedikit shadow untuk memisahkan dari konten
+        elevation: 1,
         centerTitle: false,
         automaticallyImplyLeading: false,
         bottom: TabBar(
@@ -77,7 +77,6 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
-        // Menggunakan halaman riwayat yang baru
         children: const [
           RiwayatPerebusanPage(),
           RiwayatFermentasiPage(),
