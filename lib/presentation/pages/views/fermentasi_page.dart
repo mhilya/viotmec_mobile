@@ -72,7 +72,6 @@ class _FermentasiPageState extends State<FermentasiPage> {
         final data = fermentasiProvider.data;
         final activeId = gudangProvider.activeGudangId;
 
-        // Logic existing untuk load data saat ganti gudang
         if (activeId != null && activeId != _lastLoadedGudangId) {
           _lastLoadedGudangId = activeId;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -257,7 +256,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
 
     final suhu1 = provider.getSuhuValues(sensor1Data);
     final suhu2 = provider.getSuhuValues(sensor2Data);
-    final waktu = provider.getWaktuValues(sensor1Data);
+    final waktu = provider.referenceList(sensor1Data, sensor2Data);
 
     final allValues = [...suhu1, ...suhu2];
     final double minY = _getSafeMin(allValues) - 2;
@@ -291,7 +290,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
 
     final kel1 = provider.getKelembabanValues(sensor1Data);
     final kel2 = provider.getKelembabanValues(sensor2Data);
-    final waktu = provider.getWaktuValues(sensor1Data);
+    final waktu = provider.referenceList(sensor1Data, sensor2Data);
 
     return _buildChartContainer(
       'Data Sensor Kelembaban 1 & 2',

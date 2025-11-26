@@ -252,7 +252,7 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               _buildStatItemCompact(
                 'Suhu Air',
-                '${provider.blanchingData?.rataRataSuhu.toStringAsFixed(1) ?? '0'}°C',
+                '${provider.rataRataSuhu.toStringAsFixed(1)}°C',
                 Icons.thermostat,
                 Colors.white,
               ),

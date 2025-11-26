@@ -19,11 +19,13 @@ class BlanchingData {
     return BlanchingData(
       status: json['status'] ?? false,
       dataSensor: List<SensorData>.from(
-        (json['dataSensor'] as List? ?? []).map((x) => SensorData.fromJson(x)),
+        (json['dataSensor'] as List? ?? []).map(
+          (x) => SensorData.fromJson(x as Map<String, dynamic>),
+        ),
       ),
       dataWaktuSensor: List<WaktuSensor>.from(
         (json['dataWaktuSensor'] as List? ?? []).map(
-          (x) => WaktuSensor.fromJson(x),
+          (x) => WaktuSensor.fromJson(x as Map<String, dynamic>),
         ),
       ),
       statusRuangan: json['statusRuangan']?.toString() ?? '0',
@@ -59,29 +61,77 @@ class BlanchingData {
       return null;
     }
   }
+
+  Map<String, List<Map<String, dynamic>>> getChartData() {
+    final Map<String, List<Map<String, dynamic>>> chartData = {};
+    final suhu1 = getSensorByFlag('suhu_1');
+    final waktu1 = getTimeByFlag('suhu_1');
+
+    if (suhu1 != null && waktu1 != null) {
+      chartData['sensor1'] = _combineSensorData(suhu1, waktu1);
+    }
+
+    final suhu2 = getSensorByFlag('suhu_2');
+    final waktu2 = getTimeByFlag('suhu_2');
+    if (suhu2 != null && waktu2 != null) {
+      chartData['sensor2'] = _combineSensorData(suhu2, waktu2);
+    }
+
+    return chartData;
+  }
+
+  List<Map<String, dynamic>> _combineSensorData(
+    SensorData suhu,
+    WaktuSensor waktu,
+  ) {
+    final List<Map<String, dynamic>> combinedData = [];
+
+    final length = waktu.value.length;
+
+    for (int i = 0; i < length; i++) {
+      combinedData.add({
+        'waktu': waktu.value[i],
+        'suhu': (i < suhu.value.length) ? suhu.value[i] : 0.0,
+        'stddev_suhu': suhu.stddev.isNotEmpty && i < suhu.stddev.length
+            ? suhu.stddev[i]
+            : null,
+      });
+    }
+
+    return combinedData.reversed.toList();
+  }
 }
 
 class SensorData {
   final String type;
   final String flagSensor;
-  final List<String> value;
-  final String avg;
+  final List<double> value;
+  final double avg;
+  final List<StdDevData> stddev;
 
   SensorData({
     required this.type,
     required this.flagSensor,
     required this.value,
     required this.avg,
+    required this.stddev,
   });
 
   factory SensorData.fromJson(Map<String, dynamic> json) {
     return SensorData(
-      type: json['type'] ?? '',
+      type: json['type'] ?? 'sensor',
       flagSensor: json['flag_sensor'] ?? '',
-      value: List<String>.from(
-        (json['value'] as List? ?? []).map((x) => x.toString()),
+      value: List<double>.from(
+        (json['value'] as List<dynamic>? ?? []).map(
+          (x) => double.tryParse(x.toString()) ?? 0.0,
+        ),
       ),
-      avg: json['avg']?.toString() ?? '0',
+      avg: double.tryParse(json['avg']?.toString() ?? '0') ?? 0.0,
+      stddev: List<StdDevData>.from(
+        (json['stddev'] as List<dynamic>? ?? []).map(
+          (x) => StdDevData.fromJson(x),
+        ),
+      ),
     );
   }
 
@@ -91,39 +141,29 @@ class SensorData {
       'flag_sensor': flagSensor,
       'value': value,
       'avg': avg,
+      'stddev': stddev.map((x) => x.toList()).toList(),
     };
-  }
-
-  List<double> get valueAsDouble {
-    return value.map((v) => double.tryParse(v) ?? 0.0).toList();
-  }
-
-  double get avgAsDouble {
-    return double.tryParse(avg) ?? 0.0;
   }
 
   double get latestValue {
     if (value.isEmpty) return 0.0;
-    return double.tryParse(value.first) ?? 0.0;
+    return value.first;
   }
 
   double get minValue {
     if (value.isEmpty) return 0.0;
-    final values = valueAsDouble;
-    return values.reduce((a, b) => a < b ? a : b);
+    return value.reduce((a, b) => a < b ? a : b);
   }
 
   double get maxValue {
     if (value.isEmpty) return 0.0;
-    final values = valueAsDouble;
-    return values.reduce((a, b) => a > b ? a : b);
+    return value.reduce((a, b) => a > b ? a : b);
   }
 
   bool get isTemperatureSensor => flagSensor.toLowerCase().contains('suhu');
-
-  bool get isHumiditySensor => flagSensor.toLowerCase().contains('kelembaban');
 }
 
+// --- WAKTU SENSOR ---
 class WaktuSensor {
   final String type;
   final String flagSensor;
@@ -137,7 +177,7 @@ class WaktuSensor {
 
   factory WaktuSensor.fromJson(Map<String, dynamic> json) {
     return WaktuSensor(
-      type: json['type'] ?? '',
+      type: json['type'] ?? 'waktu',
       flagSensor: json['flag_sensor'] ?? '',
       value: List<String>.from(
         (json['value'] as List? ?? []).map((x) => x.toString()),
@@ -148,25 +188,31 @@ class WaktuSensor {
   Map<String, dynamic> toJson() {
     return {'type': type, 'flag_sensor': flagSensor, 'value': value};
   }
-
-  String get latestTime {
-    if (value.isEmpty) return '';
-    return value.first;
-  }
-
-  String get timeRange {
-    if (value.isEmpty) return '';
-    if (value.length == 1) return value.first;
-    return '${value.last} - ${value.first}';
-  }
-
-  List<String> get formattedTimes {
-    return value.map((time) {
-      return time;
-    }).toList();
-  }
 }
 
+// --- STD DEV DATA (Baru: Konsisten dengan Fermentasi) ---
+class StdDevData {
+  final int timestamp;
+  final double value;
+
+  StdDevData({required this.timestamp, required this.value});
+
+  factory StdDevData.fromJson(dynamic json) {
+    if (json is List && json.length >= 2) {
+      return StdDevData(
+        timestamp: json[0] is int
+            ? json[0]
+            : int.tryParse(json[0].toString()) ?? 0,
+        value: double.tryParse(json[1].toString()) ?? 0.0,
+      );
+    }
+    return StdDevData(timestamp: 0, value: 0.0);
+  }
+
+  List<dynamic> toList() => [timestamp, value.toString()];
+}
+
+// --- TIMER DATA (Tidak Berubah) ---
 class TimerData {
   final bool status;
   final String statusTimer;
