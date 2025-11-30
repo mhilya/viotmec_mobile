@@ -287,10 +287,8 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
   ) {
     if (sensors.isEmpty) return const SizedBox();
 
-    // Ambil data waktu dari sensor pertama
     final List<String> waktu = sensors.first.timeLabel;
 
-    // Combine values for min/max calculation
     List<double> allValues = [];
     for (var s in sensors) {
       allValues.addAll(s.numericValues);
@@ -432,7 +430,7 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 2.1, // UBAH JADI 2.1 atau 2.0 agar lebih tinggi
+        childAspectRatio: 2.1,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -478,9 +476,8 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2), // Jarak aman
+                    const SizedBox(height: 2),
                     FittedBox(
-                      // Safety agar text panjang tidak overflow
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -537,7 +534,6 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: dataCount,
               itemBuilder: (context, index) {
-                // Reversed logic: Index 0 adalah data paling akhir (terbaru)
                 final realIndex = dataCount - 1 - index;
                 final time = refSensor.timeLabel[realIndex];
 
@@ -552,12 +548,10 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  // GANTI ROW BIASA DENGAN STRUKTUR INI:
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment
-                        .start, // Agar waktu tetap di atas jika sensor wrap ke bawah
+                        .start,
                     children: [
-                      // 1. Bagian Waktu (Kiri)
                       Text(
                         time,
                         style: const TextStyle(
@@ -569,15 +563,14 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
 
                       const SizedBox(
                         width: 80,
-                      ), // Jarak aman antara waktu dan data
-                      // 2. Bagian Sensor (Kanan - Fleksibel)
+                      ),
                       Expanded(
                         child: Wrap(
                           alignment:
-                              WrapAlignment.end, // Meratakan item ke kanan
-                          spacing: 12, // Jarak horizontal antar item sensor
+                              WrapAlignment.end,
+                          spacing: 12,
                           runSpacing:
-                              4, // Jarak vertikal jika item turun ke baris baru
+                              4,
                           children: data.dataSensor.map((sensor) {
                             final val = sensor.value[realIndex];
                             final isSuhu = sensor.flagSensor
@@ -590,8 +583,6 @@ class _RiwayatPerebusanPageState extends State<RiwayatPerebusanPage> {
                             final color = isSuhu
                                 ? Colors.red.shade300
                                 : Colors.blue.shade300;
-
-                            // Gunakan MainAxisSize.min agar Row anak tidak memakan tempat sisa
                             return Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

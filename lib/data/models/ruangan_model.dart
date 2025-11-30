@@ -2,7 +2,7 @@ class RuanganModel {
   final String id;
   final String namaRuangan;
   final String idGudang;
-  final int tipeRuangan; // Ditambahkan
+  final int tipeRuangan;
 
   RuanganModel({
     required this.id,
@@ -13,11 +13,9 @@ class RuanganModel {
 
   factory RuanganModel.fromJson(Map<String, dynamic> json) {
     return RuanganModel(
-      // Diperbaiki: Menggunakan 'id_ruangan' sebagai 'id'
       id: json['id_ruangan']?.toString() ?? '',
       namaRuangan: json['nama_ruangan']?.toString() ?? '',
       idGudang: json['id_gudang']?.toString() ?? '',
-      // Ditambahkan: 'tipe_ruangan'
       tipeRuangan: _parseTipe(json['tipe_ruangan']),
     );
   }

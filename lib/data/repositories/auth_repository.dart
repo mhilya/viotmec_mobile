@@ -20,14 +20,10 @@ class AuthRepository {
 
   Future<bool> logout() async {
     try {
-      // Coba logout dari server
       await _apiService.logout();
     } catch (e) {
-      // Tetap lanjutkan meskipun server logout gagal
       print('Server logout failed: $e');
     }
-    
-    // Selalu hapus token lokal
     await _prefsHelper.removeToken();
     return true;
   }

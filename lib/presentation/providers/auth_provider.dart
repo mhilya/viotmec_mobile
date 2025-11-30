@@ -49,7 +49,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Panggil repository untuk melakukan logout di server dan lokal
       final success = await authRepository.logout();
       
       if (success) {
@@ -57,8 +56,6 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        // Meskipun repository saat ini selalu return true, 
-        // ini adalah praktik yang baik untuk menangani kegagalan
         _errorMessage = 'Gagal melakukan logout.';
         _state = AuthState.error;
         notifyListeners();

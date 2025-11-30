@@ -97,41 +97,41 @@ class _PengeringanPageState extends State<PengeringanPage> {
             }
           },
 
-        child:  SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          physics: const AlwaysScrollableScrollPhysics(), 
-          child: Column(
-            children: [
-              if (activeId == null) _buildNoActiveGudangWidget(),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                if (activeId == null) _buildNoActiveGudangWidget(),
 
-              if (activeId != null) ...[
-                _buildHeaderCard(pengeringanProvider),
-                const SizedBox(height: 16),
-
-                if (pengeringanProvider.isLoading)
-                  _buildLoadingIndicator()
-                else if (pengeringanProvider.errorMessage.isNotEmpty &&
-                    data == null)
-                  _buildErrorWidget(pengeringanProvider)
-                else if (data != null) ...[
-                  _buildChartNavigation(),
+                if (activeId != null) ...[
+                  _buildHeaderCard(pengeringanProvider),
                   const SizedBox(height: 16),
 
-                  _buildCurrentChart(pengeringanProvider),
-                  const SizedBox(height: 16),
+                  if (pengeringanProvider.isLoading)
+                    _buildLoadingIndicator()
+                  else if (pengeringanProvider.errorMessage.isNotEmpty &&
+                      data == null)
+                    _buildErrorWidget(pengeringanProvider)
+                  else if (data != null) ...[
+                    _buildChartNavigation(),
+                    const SizedBox(height: 16),
 
-                  _buildQuickStatsCard(pengeringanProvider),
-                  const SizedBox(height: 16),
+                    _buildCurrentChart(pengeringanProvider),
+                    const SizedBox(height: 16),
 
-                  _buildBlowerControlCard(pengeringanProvider),
-                  const SizedBox(height: 16),
+                    _buildQuickStatsCard(pengeringanProvider),
+                    const SizedBox(height: 16),
 
-                  _buildSensorDetailsCard(pengeringanProvider),
+                    _buildBlowerControlCard(pengeringanProvider),
+                    const SizedBox(height: 16),
+
+                    _buildSensorDetailsCard(pengeringanProvider),
+                  ],
                 ],
               ],
-            ],
+            ),
           ),
-        ),
         );
       },
     );
@@ -842,12 +842,11 @@ class _PengeringanPageState extends State<PengeringanPage> {
     );
   }
 
-Widget _buildBlowerControlCard(PengeringanProvider provider) {
-    // 1. Ambil daftar blower dari backend
+  Widget _buildBlowerControlCard(PengeringanProvider provider) {
     final blowersList = provider.availableBlowers;
 
     if (blowersList.isEmpty) {
-      return const SizedBox(); // Atau return Text("Tidak ada blower")
+      return const SizedBox();
     }
 
     return Container(
@@ -878,7 +877,6 @@ Widget _buildBlowerControlCard(PengeringanProvider provider) {
           ),
           const SizedBox(height: 16),
 
-          // 2. Render Dinamis menggunakan ListView.separated atau Column+Map
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -890,27 +888,12 @@ Widget _buildBlowerControlCard(PengeringanProvider provider) {
             itemBuilder: (context, index) {
               final blowerMeta = blowersList[index];
               final id = blowerMeta.idSensor;
-              
-              // Format Label: "blower_1" -> "BLOWER 1"
+
               final label = blowerMeta.flagSensor
                   .replaceAll('_', ' ')
                   .toUpperCase();
 
-              // Ambil status spesifik dari Provider
               final isActive = provider.isBlowerActive(id);
-              
-              // Ambil nilai sensor (jika ada datanya di map)
-              // Kita akses via provider._blowersData (tapi variable itu private),
-              // jadi idealnya provider punya getter `getBlowerData(id)`.
-              // Jika provider belum punya getter publik, kita handle safe null:
-              // (Asumsi di provider Anda menambah getter: BlowerStatusModel? getBlowerData(String id))
-              
-              // Karena di kode provider sebelumnya variabel _blowersData private, 
-              // kita hanya punya isBlowerActive. Untuk nilai sensor string,
-              // Anda mungkin perlu menambah getter di provider: `String getBlowerValue(String id)`
-              // Untuk sekarang kita set default atau ambil dari getter isBlowerActive logic.
-              
-              // Warna selang-seling (Biru / Hijau)
               final color = index % 2 == 0 ? Colors.blue : Colors.green;
 
               return _buildSingleBlowerControl(
@@ -918,9 +901,7 @@ Widget _buildBlowerControlCard(PengeringanProvider provider) {
                 blowerId: id,
                 blowerName: label,
                 isActive: isActive,
-                // Jika provider belum support get nilai string per ID, 
-                // bisa tampilkan status ON/OFF saja atau update providernya.
-                nilaiSensor: isActive ? "1" : "0", 
+                nilaiSensor: isActive ? "1" : "0",
                 color: color,
               );
             },
@@ -930,8 +911,7 @@ Widget _buildBlowerControlCard(PengeringanProvider provider) {
     );
   }
 
-  // ✅ BUAT WIDGET UNTUK SATU BLOKER
-Widget _buildSingleBlowerControl({
+  Widget _buildSingleBlowerControl({
     required PengeringanProvider provider,
     required String blowerId,
     required String blowerName,
@@ -939,12 +919,10 @@ Widget _buildSingleBlowerControl({
     required String nilaiSensor,
     required Color color,
   }) {
-    // Cek apakah spesifik ID ini sedang loading
     final isToggling = provider.isBlowerToggling(blowerId);
 
     return Row(
       children: [
-        // Status Info
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -983,7 +961,6 @@ Widget _buildSingleBlowerControl({
 
         const SizedBox(width: 16),
 
-        // Tombol Toggle
         ElevatedButton(
           onPressed: isToggling
               ? null
@@ -991,10 +968,7 @@ Widget _buildSingleBlowerControl({
           style: ElevatedButton.styleFrom(
             backgroundColor: isActive ? Colors.red : color,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -1005,9 +979,7 @@ Widget _buildSingleBlowerControl({
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 )
               : Text(isActive ? 'MATIKAN' : 'HIDUPKAN'),

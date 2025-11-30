@@ -6,7 +6,6 @@ class PengeringanRepository {
 
   PengeringanRepository(this._apiService);
 
-  // Get data sensor pengeringan (suhu & kelembaban)
   Future<PengeringanData> getPengeringanData(String gudangId) async {
     try {
       final response = await _apiService.getDataSensorPengeringan(gudangId);
@@ -16,7 +15,6 @@ class PengeringanRepository {
     }
   }
 
-  // Get status blower
   Future<BlowerStatusModel> getDataStatusBlower(String sensorId) async {
     try {
       final response = await _apiService.getDataStatusBlower(sensorId);
@@ -26,7 +24,6 @@ class PengeringanRepository {
     }
   }
 
-  // Toggle blower
   Future<BlowerToggleModel> toggleBlower(String sensorId) async {
     try {
       final response = await _apiService.toggleBlower(sensorId);
