@@ -36,8 +36,6 @@ class ApiService {
     );
   }
 
-  // --- AUTH ---
-
   Future<LoginResponse> login(String email, String password) async {
     try {
       final response = await _dioClient.post(
@@ -71,8 +69,6 @@ class ApiService {
       return false;
     }
   }
-
-  // --- BLANCHING ---
 
   Future<Map<String, dynamic>> getDataSensorBlanching(String gudangId) async {
     try {

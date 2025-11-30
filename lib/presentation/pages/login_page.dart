@@ -23,25 +23,16 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Fungsi untuk menangani aksi login
   void _handleLogin() async {
-    // Ambil AuthProvider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
     final email = _emailController.text;
     final password = _passwordController.text;
-
-    // Panggil fungsi login dari provider
     bool success = await authProvider.login(email, password);
 
-    // Cek hasil login
     if (mounted) {
-      // Pastikan widget masih ada di tree
       if (success) {
-        // Jika sukses, navigasi ke dashboard
         Navigator.pushReplacementNamed(context, AppRoutes.main);
       } else {
-        // Jika gagal, tampilkan pesan error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authProvider.errorMessage),
@@ -54,7 +45,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Tonton state dari provider
     final authProvider = context.watch<AuthProvider>();
 
     return PopScope(
@@ -155,7 +145,7 @@ class _LoginPageState extends State<LoginPage> {
                     height: 40,
                     child: ElevatedButton(
                       onPressed: authProvider.state == AuthState.loading
-                          ? null // Nonaktifkan tombol saat loading
+                          ? null
                           : _handleLogin,
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.zero,

@@ -62,15 +62,11 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
         elevation: 0,
       ),
       backgroundColor: Colors.grey[100],
-      // Consumer mendengarkan perubahan di Provider
       body: Consumer<RiwayatNotifikasiProvider>(
         builder: (context, provider, child) {
-          // 1. Tampilkan Loading
           if (provider.isLoading) {
             return Center(child: CircularProgressIndicator());
           }
-
-          // 2. Tampilkan Error jika ada
           if (provider.errorMessage != null) {
             return Center(
               child: Column(
@@ -87,8 +83,6 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
               ),
             );
           }
-
-          // 3. Tampilkan Kosong jika data 0
           if (provider.listNotifikasi.isEmpty) {
             return Center(
               child: RefreshIndicator(
@@ -113,8 +107,6 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
               ),
             );
           }
-
-          // 4. Tampilkan List Data
           return RefreshIndicator(
             onRefresh: () => provider.fetchNotifikasi(),
             child: ListView.builder(

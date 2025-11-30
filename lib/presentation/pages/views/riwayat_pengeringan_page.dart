@@ -73,7 +73,7 @@ class _RiwayatPengeringanPageState extends State<RiwayatPengeringanPage> {
         return RefreshIndicator(
           onRefresh: () async {
             if (provider.selectedGudangId != null) {
-              await provider.getRiwayatByGudangAndType(3); // 3 = Pengeringan
+              await provider.getRiwayatByGudangAndType(3);
             }
           },
           child: SingleChildScrollView(
@@ -340,7 +340,6 @@ class _RiwayatPengeringanPageState extends State<RiwayatPengeringanPage> {
                 lineBarsData: sensors.asMap().entries.map((entry) {
                   final index = entry.key;
                   final sensor = entry.value;
-                  // Warna berbeda untuk sensor berbeda tipe yang sama (S1, S2)
                   final color = index == 0 ? baseColor : const Color(0xFFFFA07A); 
                   
                   return LineChartBarData(
@@ -386,7 +385,7 @@ Widget _buildStatsCard(RiwayatData data) {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 2.1, // UBAH JADI 2.1 atau 2.0 agar lebih tinggi
+        childAspectRatio: 2.1,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -427,8 +426,8 @@ Widget _buildStatsCard(RiwayatData data) {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2), // Jarak aman
-                    FittedBox( // Safety agar text panjang tidak overflow
+                    const SizedBox(height: 2),
+                    FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -449,8 +448,6 @@ Widget _buildStatsCard(RiwayatData data) {
 
   Widget _buildDetailsList(RiwayatData data) {
     if (data.dataSensor.isEmpty) return const SizedBox();
-
-    // Ambil sensor pertama sebagai referensi jumlah data & waktu
     final refSensor = data.dataSensor.first;
     final int dataCount = refSensor.value.length;
 
@@ -482,7 +479,6 @@ Widget _buildStatsCard(RiwayatData data) {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: dataCount,
               itemBuilder: (context, index) {
-                // Reversed logic: Index 0 adalah data paling akhir (terbaru)
                 final realIndex = dataCount - 1 - index;
                 final time = refSensor.timeLabel[realIndex];
 
@@ -497,12 +493,10 @@ Widget _buildStatsCard(RiwayatData data) {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  // GANTI ROW BIASA DENGAN STRUKTUR INI:
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment
-                        .start, // Agar waktu tetap di atas jika sensor wrap ke bawah
+                        .start,
                     children: [
-                      // 1. Bagian Waktu (Kiri)
                       Text(
                         time,
                         style: const TextStyle(
@@ -514,15 +508,14 @@ Widget _buildStatsCard(RiwayatData data) {
 
                       const SizedBox(
                         width: 80,
-                      ), // Jarak aman antara waktu dan data
-                      // 2. Bagian Sensor (Kanan - Fleksibel)
+                      ),
                       Expanded(
                         child: Wrap(
                           alignment:
-                              WrapAlignment.end, // Meratakan item ke kanan
-                          spacing: 12, // Jarak horizontal antar item sensor
+                              WrapAlignment.end, 
+                          spacing: 12,
                           runSpacing:
-                              4, // Jarak vertikal jika item turun ke baris baru
+                              4,
                           children: data.dataSensor.map((sensor) {
                             final val = sensor.value[realIndex];
                             final isSuhu = sensor.flagSensor
@@ -536,7 +529,6 @@ Widget _buildStatsCard(RiwayatData data) {
                                 ? Colors.red.shade300
                                 : Colors.blue.shade300;
 
-                            // Gunakan MainAxisSize.min agar Row anak tidak memakan tempat sisa
                             return Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

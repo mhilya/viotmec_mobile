@@ -380,7 +380,6 @@ class _RiwayatFermentasiPageState extends State<RiwayatFermentasiPage> {
                 lineBarsData: sensors.asMap().entries.map((entry) {
                   final index = entry.key;
                   final sensor = entry.value;
-                  // Warna berbeda untuk sensor berbeda tipe yang sama (S1, S2)
                   final color = index == 0
                       ? baseColor
                       : const Color(0xFFFFA07A);
@@ -477,9 +476,8 @@ class _RiwayatFermentasiPageState extends State<RiwayatFermentasiPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2), // Jarak aman
+                    const SizedBox(height: 2),
                     FittedBox(
-                      // Safety agar text panjang tidak overflow
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -504,8 +502,6 @@ class _RiwayatFermentasiPageState extends State<RiwayatFermentasiPage> {
 
   Widget _buildDetailsList(RiwayatData data) {
     if (data.dataSensor.isEmpty) return const SizedBox();
-
-    // Ambil sensor pertama sebagai referensi jumlah data & waktu
     final refSensor = data.dataSensor.first;
     final int dataCount = refSensor.value.length;
 

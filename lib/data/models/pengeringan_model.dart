@@ -263,7 +263,6 @@ class BlowerStatusModel {
   }
 }
 
-// Untuk toggleBlower
 class BlowerToggleModel {
   final bool status;
   final String message;

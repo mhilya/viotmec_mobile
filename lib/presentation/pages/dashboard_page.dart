@@ -33,8 +33,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     await userProvider.getUserProfile();
     await gudangProvider.loadGudangList();
-    
-    // Fetch data awal jika sudah ada gudang aktif default
+
     if (gudangProvider.activeGudangId != null) {
       _fetchRoomData(gudangProvider.activeGudangId!);
     }
@@ -48,7 +47,6 @@ class _DashboardPageState extends State<DashboardPage> {
     final fermentasiProvider = context.read<FermentasiProvider>();
     final pengeringanProvider = context.read<PengeringanProvider>();
 
-    // Fetch parallel agar efisien
     await Future.wait([
       blanchingProvider.fetchData(activeGudangId),
       fermentasiProvider.fetchData(activeGudangId),
@@ -79,8 +77,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 FermentasiProvider, PengeringanProvider>(
               builder: (context, userProv, gudangProv, blanchingProv,
                   fermentasiProv, pengeringanProv, _) {
-                
-                // Cek perubahan gudang via provider (jika berubah dari tempat lain)
                 if (gudangProv.activeGudangId != null && 
                     gudangProv.activeGudangId != _lastLoadedGudangId) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -91,7 +87,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(userProv, context), // Pass context untuk navigasi
+                    _buildHeader(userProv, context),
                     const SizedBox(height: 24),
                     _buildGudangDropdown(gudangProv),
                     const SizedBox(height: 24),
@@ -101,15 +97,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     else if (!gudangProv.hasActiveGudang)
                        _buildNoGudangState()
                     else ...[
-                      // 1. Blanching Card
                       _buildBlanchingCard(blanchingProv, gudangProv.activeGudangId),
                       const SizedBox(height: 20),
-                      
-                      // 2. Fermentasi Card
                       _buildFermentasiCard(fermentasiProv),
                       const SizedBox(height: 20),
-                      
-                      // 3. Pengeringan Card
                       _buildPengeringanCard(pengeringanProv, gudangProv.activeGudangId),
                       const SizedBox(height: 30),
                     ],
@@ -165,7 +156,6 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         IconButton(
           onPressed: () {
-            // --- NAVIGASI KE HALAMAN NOTIFIKASI ---
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -229,9 +219,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-
-  // --- COMPONENT CARDS ---
-
+  
   Widget _buildBlanchingCard(BlanchingProvider provider, String? gudangId) {
     final timerData = provider.timerResponse?.getTimerByFlag('timer_1');
     final isRunning = timerData?.isRunning ?? false;

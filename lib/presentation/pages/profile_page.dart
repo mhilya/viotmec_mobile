@@ -66,7 +66,6 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.edit_outlined,
                   title: 'Edit Profil',
                   onTap: () {
-                    // Navigasi ke halaman edit profil
                   },
                 ),
                 _buildSettingsTile(
@@ -74,7 +73,6 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.lock_outline,
                   title: 'Ubah Kata Sandi',
                   onTap: () {
-                    // Navigasi ke halaman ubah kata sandi
                   },
                 ),
                 _buildSettingsTile(
@@ -94,7 +92,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Widget untuk menampilkan header profil (Avatar, Nama, Email)
   Widget _buildProfileHeader(UserModel user) {
     return Column(
       children: [
@@ -123,7 +120,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Widget card generik yang konsisten dengan desain dashboard
   Widget _buildInfoCard(String title, IconData icon, List<Widget> children) {
     return Builder(builder: (context) {
       return Container(
@@ -165,7 +161,6 @@ class ProfilePage extends StatelessWidget {
     });
   }
 
-  // Widget untuk baris informasi (Label: Value), konsisten dengan dashboard
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -192,7 +187,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Widget untuk item di kartu pengaturan
   Widget _buildSettingsTile(
     BuildContext context, {
     required IconData icon,
@@ -227,7 +221,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Enhanced Logout Dialog dengan UI yang lebih modern
   void _showEnhancedLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -262,7 +255,6 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header dengan icon dan gradient
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -333,8 +325,6 @@ class ProfilePage extends StatelessWidget {
               ],
             ),
           ),
-          
-          // Actions
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -347,7 +337,6 @@ class ProfilePage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Cancel Button
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
@@ -370,33 +359,26 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                
-                // Logout Button
                 Expanded(
                   child: Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return ElevatedButton(
                         onPressed: () async {
-                          // Tampilkan loading indicator
                           _showLoadingDialog(context);
-                          
-                          // Lakukan logout
+
                           final success = await authProvider.logout();
-                          
-                          // Tutup loading dialog
+
                           if (context.mounted) {
-                            Navigator.of(context).pop(); // Tutup loading
+                            Navigator.of(context).pop();
                             
                             if (success) {
-                              Navigator.of(context).pop(); // Tutup logout dialog
-                              // Navigate ke login page dan hapus semua halaman sebelumnya
+                              Navigator.of(context).pop();
                               Navigator.pushNamedAndRemoveUntil(
                                 context,
                                 AppRoutes.login,
                                 (route) => false,
                               );
                             } else {
-                              // Tampilkan error message
                               _showErrorDialog(context, authProvider.errorMessage);
                             }
                           }

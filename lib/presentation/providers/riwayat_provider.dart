@@ -63,11 +63,7 @@ class RiwayatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Ambil daftar ruangan berdasarkan gudang
       final rooms = await _repository.getRuanganByGudang(_selectedGudangId!);
-      
-      // 2. Cari ruangan yang tipe_ruangan-nya COCOK
-      // PERBAIKAN DI SINI: Gunakan toString() untuk membandingkan
       final targetRoom = rooms.firstWhere(
         (room) => room['tipe_ruangan'].toString() == tipeRuangan.toString(),
         orElse: () => null,
@@ -79,8 +75,6 @@ class RiwayatProvider extends ChangeNotifier {
 
       final String ruanganId = targetRoom['id_ruangan'].toString();
       final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
-      // 3. Ambil data sensor
       final result = await _repository.getRiwayatSensor(
         ruanganId,
         formattedDate,
@@ -98,7 +92,6 @@ class RiwayatProvider extends ChangeNotifier {
   void resetState() {
     _riwayatData = null;
     _errorMessage = null;
-    // Kita tidak mereset listGudang agar tidak loading ulang terus menerus
     if (_listGudang.isEmpty) {
         _selectedGudangId = null;
     }
