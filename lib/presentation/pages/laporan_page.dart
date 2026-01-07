@@ -77,6 +77,7 @@ class _LaporanPageState extends State<LaporanPage> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
         children: const [
           BlanchingPage(),
           FermentasiPage(),

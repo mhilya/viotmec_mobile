@@ -4,6 +4,7 @@ import 'package:viotmec_mobile/data/models/user_model.dart';
 import 'package:viotmec_mobile/presentation/providers/user_provider.dart';
 import 'package:viotmec_mobile/presentation/providers/auth_provider.dart';
 import 'package:viotmec_mobile/routes/app_routes.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -14,10 +15,7 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Profil Saya',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         centerTitle: true,
         elevation: 0,
@@ -35,14 +33,16 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(userProvider.errorMessage.isNotEmpty
-                      ? userProvider.errorMessage
-                      : 'Gagal memuat data pengguna.'),
+                  Text(
+                    userProvider.errorMessage.isNotEmpty
+                        ? userProvider.errorMessage
+                        : 'Gagal memuat data pengguna.',
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => userProvider.getUserProfile(),
                     child: const Text('Coba Lagi'),
-                  )
+                  ),
                 ],
               ),
             );
@@ -63,16 +63,10 @@ class ProfilePage extends StatelessWidget {
               _buildInfoCard('Pengaturan & Lainnya', Icons.settings_outlined, [
                 _buildSettingsTile(
                   context,
-                  icon: Icons.edit_outlined,
-                  title: 'Edit Profil',
-                  onTap: () {
-                  },
-                ),
-                _buildSettingsTile(
-                  context,
                   icon: Icons.lock_outline,
-                  title: 'Ubah Kata Sandi',
+                  title: 'Lupa Kata Sandi',
                   onTap: () {
+                    _launchForgotPassword();
                   },
                 ),
                 _buildSettingsTile(
@@ -111,54 +105,57 @@ class ProfilePage extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           user.email,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black54,
-          ),
+          style: const TextStyle(fontSize: 16, color: Colors.black54),
         ),
       ],
     );
   }
 
   Widget _buildInfoCard(String title, IconData icon, List<Widget> children) {
-    return Builder(builder: (context) {
-      return Container(
-        padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(20.0),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+    return Builder(
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(20.0),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 22,
                   ),
-                ),
-              ],
-            ),
-            const Divider(height: 28, thickness: 1, color: Color(0xFFF0F0F0)),
-            ...children,
-          ],
-        ),
-      );
-    });
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 28, thickness: 1, color: Color(0xFFF0F0F0)),
+              ...children,
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -169,10 +166,7 @@ class ProfilePage extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           Text(
             value,
@@ -214,11 +208,34 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  // void _launchForgotPassword() async {
+  //   final url = 'https://viotmec.com/forgot-password';
+  //   if (await canLaunch(url)) {
+  //     await launch(url);
+  //   } else {
+  //     throw 'Could not launch $url';
+  //   }
+  // }
+
+  void _launchForgotPassword() async {
+    final url = 'https://viotmec.com/forgot-password';
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      // Fallback: Buka browser manual
+      debugPrint('Gagal membuka URL: $e');
+    }
   }
 
   void _showEnhancedLogoutDialog(BuildContext context) {
@@ -262,10 +279,7 @@ class ProfilePage extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Colors.red.shade50,
-                  Colors.orange.shade50,
-                ],
+                colors: [Colors.red.shade50, Colors.orange.shade50],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(24),
@@ -298,7 +312,7 @@ class ProfilePage extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Content
           Padding(
             padding: const EdgeInsets.all(24),
@@ -317,10 +331,7 @@ class ProfilePage extends StatelessWidget {
                 Text(
                   'Anda perlu login kembali untuk mengakses akun.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -329,10 +340,7 @@ class ProfilePage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(
-                  color: Colors.grey.shade200,
-                  width: 1,
-                ),
+                top: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
             ),
             child: Row(
@@ -370,7 +378,7 @@ class ProfilePage extends StatelessWidget {
 
                           if (context.mounted) {
                             Navigator.of(context).pop();
-                            
+
                             if (success) {
                               Navigator.of(context).pop();
                               Navigator.pushNamedAndRemoveUntil(
@@ -379,7 +387,10 @@ class ProfilePage extends StatelessWidget {
                                 (route) => false,
                               );
                             } else {
-                              _showErrorDialog(context, authProvider.errorMessage);
+                              _showErrorDialog(
+                                context,
+                                authProvider.errorMessage,
+                              );
                             }
                           }
                         },
