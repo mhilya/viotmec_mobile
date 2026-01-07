@@ -10,7 +10,8 @@ class RiwayatPage extends StatefulWidget {
   State<RiwayatPage> createState() => _RiwayatPageState();
 }
 
-class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStateMixin {
+class _RiwayatPageState extends State<RiwayatPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -77,6 +78,7 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
         children: const [
           RiwayatPerebusanPage(),
           RiwayatFermentasiPage(),

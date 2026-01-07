@@ -189,6 +189,16 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo_header.png',
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

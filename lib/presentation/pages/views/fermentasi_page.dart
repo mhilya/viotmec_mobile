@@ -65,6 +65,42 @@ class _FermentasiPageState extends State<FermentasiPage> {
     return data.sublist(data.length - 15).reversed.toList();
   }
 
+  // Helper baru untuk menghitung Min/Max dengan buffer yang rapi
+  // Menangani minus dan rentang data besar
+  Map<String, double> _calculateMinMaxBuffer(List<double> data) {
+    if (data.isEmpty) return {'min': 0, 'max': 100, 'interval': 20};
+
+    double minVal = data.reduce(math.min);
+    double maxVal = data.reduce(math.max);
+
+    // Jika data datar (semua sama), beri buffer buatan
+    if (minVal == maxVal) {
+      minVal -= 10;
+      maxVal += 10;
+    }
+
+    // Hitung range
+    double range = maxVal - minVal;
+    
+    // Tambahkan buffer 10% di atas dan bawah
+    double buffer = range * 0.1; 
+    if (buffer == 0) buffer = 5; // Fallback buffer
+
+    double finalMin = minVal - buffer;
+    double finalMax = maxVal + buffer;
+
+    // Hitung interval dinamis (dibagi 5 bagian)
+    double interval = (finalMax - finalMin) / 5;
+    // Bulatkan interval agar angkanya cantik (opsional, tapi lebih rapi begini)
+    if (interval == 0) interval = 10;
+
+    return {
+      'min': finalMin,
+      'max': finalMax,
+      'interval': interval,
+    };
+  }
+
 @override
   Widget build(BuildContext context) {
     return Consumer2<GudangProvider, FermentasiProvider>(
@@ -198,6 +234,58 @@ class _FermentasiPageState extends State<FermentasiPage> {
     }
   }
 
+  // Widget _buildSuhuVsKelembabanChart(FermentasiProvider provider) {
+  //   final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+  //   final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+  //   final suhu1 = provider.getSuhuValues(sensor1Data);
+  //   final suhu2 = provider.getSuhuValues(sensor2Data);
+  //   final kel1 = provider.getKelembabanValues(sensor1Data);
+  //   final kel2 = provider.getKelembabanValues(sensor2Data);
+  //   final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+  //   return _buildChartContainer(
+  //     'Data Suhu dan Kelembaban',
+  //     'Monitoring Gabungan (S1 & S2)',
+  //     LineChart(
+  //       _mainChartData(
+  //         minY: 0,
+  //         maxY: 100,
+  //         waktu: waktu,
+  //         lineBarsData: [
+  //           _buildLineBarData(suhu1, colorSensor1, false),
+  //           _buildLineBarData(suhu2, colorSensor2, false),
+  //           _buildLineBarData(kel1, colorKelembaban1, false),
+  //           _buildLineBarData(kel2, colorKelembaban2, false),
+  //         ],
+  //         leftTitleSuffix: '',
+  //         intervalY: 20,
+  //       ),
+  //     ),
+  //     [
+  //       Column(
+  //         children: [
+  //           Row(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               _LegendItem(color: colorSensor1, text: 'Suhu 1'),
+  //               _LegendItem(color: colorSensor2, text: 'Suhu 2'),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 4),
+  //           Row(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               _LegendItem(color: colorKelembaban1, text: 'Kelembaban 1'),
+  //               _LegendItem(color: colorKelembaban2, text: 'Kelembaban 2'),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //     ],
+  //   );
+  // }
+
   Widget _buildSuhuVsKelembabanChart(FermentasiProvider provider) {
     final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
     final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
@@ -208,13 +296,17 @@ class _FermentasiPageState extends State<FermentasiPage> {
     final kel2 = provider.getKelembabanValues(sensor2Data);
     final waktu = provider.referenceList(sensor1Data, sensor2Data);
 
+    // Gabungkan semua data untuk mencari batas terluar
+    final allValues = [...suhu1, ...suhu2, ...kel1, ...kel2];
+    final bounds = _calculateMinMaxBuffer(allValues);
+
     return _buildChartContainer(
       'Data Suhu dan Kelembaban',
       'Monitoring Gabungan (S1 & S2)',
       LineChart(
         _mainChartData(
-          minY: 0,
-          maxY: 100,
+          minY: bounds['min']!,
+          maxY: bounds['max']!,
           waktu: waktu,
           lineBarsData: [
             _buildLineBarData(suhu1, colorSensor1, false),
@@ -223,7 +315,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
             _buildLineBarData(kel2, colorKelembaban2, false),
           ],
           leftTitleSuffix: '',
-          intervalY: 20,
+          intervalY: bounds['interval'],
         ),
       ),
       [
@@ -250,6 +342,40 @@ class _FermentasiPageState extends State<FermentasiPage> {
     );
   }
 
+  // Widget _buildSuhuComparisonChart(FermentasiProvider provider) {
+  //   final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+  //   final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+  //   final suhu1 = provider.getSuhuValues(sensor1Data);
+  //   final suhu2 = provider.getSuhuValues(sensor2Data);
+  //   final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+  //   final allValues = [...suhu1, ...suhu2];
+  //   final double minY = _getSafeMin(allValues) - 2;
+  //   final double maxY = _getSafeMax(allValues) + 2;
+
+  //   return _buildChartContainer(
+  //     'Data Sensor Suhu 1 & 2',
+  //     'Monitoring suhu 15 data terakhir',
+  //     LineChart(
+  //       _mainChartData(
+  //         minY: minY < 0 ? 0 : minY,
+  //         maxY: maxY,
+  //         waktu: waktu,
+  //         lineBarsData: [
+  //           _buildLineBarData(suhu1, colorSensor1, true),
+  //           _buildLineBarData(suhu2, colorSensor2, true),
+  //         ],
+  //         leftTitleSuffix: '°C',
+  //       ),
+  //     ),
+  //     [
+  //       _LegendItem(color: colorSensor1, text: 'Sensor 1'),
+  //       _LegendItem(color: colorSensor2, text: 'Sensor 2'),
+  //     ],
+  //   );
+  // }
+
   Widget _buildSuhuComparisonChart(FermentasiProvider provider) {
     final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
     final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
@@ -259,22 +385,22 @@ class _FermentasiPageState extends State<FermentasiPage> {
     final waktu = provider.referenceList(sensor1Data, sensor2Data);
 
     final allValues = [...suhu1, ...suhu2];
-    final double minY = _getSafeMin(allValues) - 2;
-    final double maxY = _getSafeMax(allValues) + 2;
+    final bounds = _calculateMinMaxBuffer(allValues);
 
     return _buildChartContainer(
       'Data Sensor Suhu 1 & 2',
       'Monitoring suhu 15 data terakhir',
       LineChart(
         _mainChartData(
-          minY: minY < 0 ? 0 : minY,
-          maxY: maxY,
+          minY: bounds['min']!, // Sekarang bisa menerima nilai minus
+          maxY: bounds['max']!,
           waktu: waktu,
           lineBarsData: [
             _buildLineBarData(suhu1, colorSensor1, true),
             _buildLineBarData(suhu2, colorSensor2, true),
           ],
           leftTitleSuffix: '°C',
+          intervalY: bounds['interval'],
         ),
       ),
       [
@@ -284,6 +410,37 @@ class _FermentasiPageState extends State<FermentasiPage> {
     );
   }
 
+  // Widget _buildKelembabanComparisonChart(FermentasiProvider provider) {
+  //   final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
+  //   final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
+
+  //   final kel1 = provider.getKelembabanValues(sensor1Data);
+  //   final kel2 = provider.getKelembabanValues(sensor2Data);
+  //   final waktu = provider.referenceList(sensor1Data, sensor2Data);
+
+  //   return _buildChartContainer(
+  //     'Data Sensor Kelembaban 1 & 2',
+  //     'Monitoring kelembaban 15 data terakhir',
+  //     LineChart(
+  //       _mainChartData(
+  //         minY: 0,
+  //         maxY: 100,
+  //         waktu: waktu,
+  //         lineBarsData: [
+  //           _buildLineBarData(kel1, colorKelembaban1, true),
+  //           _buildLineBarData(kel2, colorKelembaban2, true),
+  //         ],
+  //         leftTitleSuffix: '%',
+  //         intervalY: 20,
+  //       ),
+  //     ),
+  //     [
+  //       _LegendItem(color: colorKelembaban1, text: 'Sensor 1'),
+  //       _LegendItem(color: colorKelembaban2, text: 'Sensor 2'),
+  //     ],
+  //   );
+  // }
+
   Widget _buildKelembabanComparisonChart(FermentasiProvider provider) {
     final sensor1Data = _getLatest15Data(provider.chartDataSensor1);
     final sensor2Data = _getLatest15Data(provider.chartDataSensor2);
@@ -292,20 +449,24 @@ class _FermentasiPageState extends State<FermentasiPage> {
     final kel2 = provider.getKelembabanValues(sensor2Data);
     final waktu = provider.referenceList(sensor1Data, sensor2Data);
 
+    final allValues = [...kel1, ...kel2];
+    // Default humidity 0-100 jika kosong, tapi tetap dinamis jika ada data aneh
+    final bounds = _calculateMinMaxBuffer(allValues.isEmpty ? [0, 100] : allValues);
+
     return _buildChartContainer(
       'Data Sensor Kelembaban 1 & 2',
       'Monitoring kelembaban 15 data terakhir',
       LineChart(
         _mainChartData(
-          minY: 0,
-          maxY: 100,
+          minY: bounds['min']!,
+          maxY: bounds['max']!,
           waktu: waktu,
           lineBarsData: [
             _buildLineBarData(kel1, colorKelembaban1, true),
             _buildLineBarData(kel2, colorKelembaban2, true),
           ],
           leftTitleSuffix: '%',
-          intervalY: 20,
+          intervalY: bounds['interval'],
         ),
       ),
       [
@@ -315,13 +476,77 @@ class _FermentasiPageState extends State<FermentasiPage> {
     );
   }
 
+  // Widget _buildStdDevSuhuChart(FermentasiProvider provider) {
+  //   var list1 = provider.stddevSuhu1.map((e) => e.value).toList();
+  //   var list2 = provider.stddevSuhu2.map((e) => e.value).toList();
+
+  //   if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
+  //   if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
+
+  //   list1 = list1.reversed.toList();
+  //   list2 = list2.reversed.toList();
+
+  //   final List<String> waktu = List.generate(
+  //     math.max(list1.length, list2.length),
+  //     (index) => (index + 1).toString(),
+  //   );
+
+  //   final double dataMax = _getSafeMax([...list1, ...list2]);
+  //   final maxY = (dataMax > 1.2 ? dataMax : 1.2) + 0.5;
+
+  //   final thresholdLine = HorizontalLine(
+  //     y: 1.0,
+  //     color: colorThreshold,
+  //     strokeWidth: 1.5,
+  //     dashArray: [5, 5],
+  //     label: HorizontalLineLabel(
+  //       show: true,
+  //       alignment: Alignment.topRight,
+  //       padding: const EdgeInsets.only(right: 5, bottom: 5),
+  //       style: TextStyle(
+  //         color: colorThreshold,
+  //         fontWeight: FontWeight.bold,
+  //         fontSize: 9,
+  //         fontFamily: 'Poppins',
+  //       ),
+  //       labelResolver: (line) => 'Batas (1.0)',
+  //     ),
+  //   );
+
+  //   return _buildChartContainer(
+  //     'Standard Deviation Suhu',
+  //     'Variabilitas data suhu (Batas Aman: 1.0)',
+  //     LineChart(
+  //       _mainChartData(
+  //         minY: 0,
+  //         maxY: maxY,
+  //         waktu: waktu,
+  //         lineBarsData: [
+  //           _buildLineBarData(list1, colorSensor1, true),
+  //           _buildLineBarData(list2, colorSensor2, true),
+  //         ],
+  //         leftTitleSuffix: '',
+  //         showDot: true,
+  //         extraHorizontalLines: [thresholdLine],
+  //       ),
+  //     ),
+  //     [
+  //       _LegendItem(color: colorSensor1, text: 'StdDev S1'),
+  //       _LegendItem(color: colorSensor2, text: 'StdDev S2'),
+  //       _LegendItem(color: colorThreshold, text: 'Batas Kestabilan'),
+  //     ],
+  //   );
+  // }
+
   Widget _buildStdDevSuhuChart(FermentasiProvider provider) {
     var list1 = provider.stddevSuhu1.map((e) => e.value).toList();
     var list2 = provider.stddevSuhu2.map((e) => e.value).toList();
 
+    // Ambil 15 data terakhir
     if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
     if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
 
+    // Balik urutan agar sesuai waktu (kiri ke kanan)
     list1 = list1.reversed.toList();
     list2 = list2.reversed.toList();
 
@@ -330,8 +555,15 @@ class _FermentasiPageState extends State<FermentasiPage> {
       (index) => (index + 1).toString(),
     );
 
+    // --- LOGIKA BARU: Dynamic Max Y ---
     final double dataMax = _getSafeMax([...list1, ...list2]);
-    final maxY = (dataMax > 1.2 ? dataMax : 1.2) + 0.5;
+    // Pastikan max minimal sedikit di atas threshold (1.0) agar garis threshold terlihat
+    // Tambahkan buffer 20% di atas nilai tertinggi
+    double targetMax = (dataMax > 1.0 ? dataMax : 1.0) * 1.2;
+    
+    // Hitung interval agar grid tidak terlalu rapat (dibagi 4 atau 5)
+    double interval = targetMax / 4;
+    if (interval == 0) interval = 0.5;
 
     final thresholdLine = HorizontalLine(
       y: 1.0,
@@ -357,8 +589,8 @@ class _FermentasiPageState extends State<FermentasiPage> {
       'Variabilitas data suhu (Batas Aman: 1.0)',
       LineChart(
         _mainChartData(
-          minY: 0,
-          maxY: maxY,
+          minY: 0, // Std Dev selalu mulai dari 0
+          maxY: targetMax,
           waktu: waktu,
           lineBarsData: [
             _buildLineBarData(list1, colorSensor1, true),
@@ -366,6 +598,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
           ],
           leftTitleSuffix: '',
           showDot: true,
+          intervalY: interval, // Interval dinamis
           extraHorizontalLines: [thresholdLine],
         ),
       ),
@@ -377,6 +610,65 @@ class _FermentasiPageState extends State<FermentasiPage> {
     );
   }
 
+  // Widget _buildStdDevKelembabanChart(FermentasiProvider provider) {
+  //   var list1 = provider.stddevKelembaban1.map((e) => e.value).toList();
+  //   var list2 = provider.stddevKelembaban2.map((e) => e.value).toList();
+
+  //   if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
+  //   if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
+
+  //   final List<String> waktu = List.generate(
+  //     math.max(list1.length, list2.length),
+  //     (index) => (index + 1).toString(),
+  //   );
+
+  //   final double dataMax = _getSafeMax([...list1, ...list2]);
+  //   final maxY = (dataMax > 5.5 ? dataMax : 5.5) + 1.0;
+
+  //   final thresholdLine = HorizontalLine(
+  //     y: 5.0,
+  //     color: colorThreshold,
+  //     strokeWidth: 1.5,
+  //     dashArray: [5, 5],
+  //     label: HorizontalLineLabel(
+  //       show: true,
+  //       alignment: Alignment.topRight,
+  //       padding: const EdgeInsets.only(right: 5, bottom: 5),
+  //       style: TextStyle(
+  //         color: colorThreshold,
+  //         fontWeight: FontWeight.bold,
+  //         fontSize: 9,
+  //         fontFamily: 'Poppins',
+  //       ),
+  //       labelResolver: (line) => 'Batas (5.0)',
+  //     ),
+  //   );
+
+  //   return _buildChartContainer(
+  //     'Standard Deviation Kelembaban',
+  //     'Variabilitas data kelembaban (Batas Aman: 5.0)',
+  //     LineChart(
+  //       _mainChartData(
+  //         minY: 0,
+  //         maxY: maxY,
+  //         waktu: waktu,
+  //         lineBarsData: [
+  //           _buildLineBarData(list1, colorKelembaban1, true),
+  //           _buildLineBarData(list2, colorKelembaban2, true),
+  //         ],
+  //         leftTitleSuffix: '',
+  //         showDot: true,
+  //         extraHorizontalLines: [thresholdLine],
+  //       ),
+  //     ),
+  //     [
+  //       _LegendItem(color: colorKelembaban1, text: 'StdDev K1'),
+  //       _LegendItem(color: colorKelembaban2, text: 'StdDev K2'),
+  //       _LegendItem(color: colorThreshold, text: 'Batas Kestabilan'),
+  //     ],
+  //   );
+  // }
+
   Widget _buildStdDevKelembabanChart(FermentasiProvider provider) {
     var list1 = provider.stddevKelembaban1.map((e) => e.value).toList();
     var list2 = provider.stddevKelembaban2.map((e) => e.value).toList();
@@ -384,13 +676,22 @@ class _FermentasiPageState extends State<FermentasiPage> {
     if (list1.length > 15) list1 = list1.sublist(list1.length - 15);
     if (list2.length > 15) list2 = list2.sublist(list2.length - 15);
 
+    list1 = list1.reversed.toList();
+    list2 = list2.reversed.toList();
+
     final List<String> waktu = List.generate(
       math.max(list1.length, list2.length),
       (index) => (index + 1).toString(),
     );
 
+    // --- LOGIKA BARU: Dynamic Max Y ---
     final double dataMax = _getSafeMax([...list1, ...list2]);
-    final maxY = (dataMax > 5.5 ? dataMax : 5.5) + 1.0;
+    // Threshold kelembaban biasanya 5.0
+    // Gunakan buffer 20% di atas nilai tertinggi atau threshold
+    double targetMax = (dataMax > 5.0 ? dataMax : 5.0) * 1.2;
+
+    double interval = targetMax / 4;
+    if (interval == 0) interval = 1.0;
 
     final thresholdLine = HorizontalLine(
       y: 5.0,
@@ -417,7 +718,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
       LineChart(
         _mainChartData(
           minY: 0,
-          maxY: maxY,
+          maxY: targetMax,
           waktu: waktu,
           lineBarsData: [
             _buildLineBarData(list1, colorKelembaban1, true),
@@ -425,6 +726,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
           ],
           leftTitleSuffix: '',
           showDot: true,
+          intervalY: interval,
           extraHorizontalLines: [thresholdLine],
         ),
       ),
@@ -436,6 +738,133 @@ class _FermentasiPageState extends State<FermentasiPage> {
     );
   }
 
+  // LineChartData _mainChartData({
+  //   required double minY,
+  //   required double maxY,
+  //   required List<String> waktu,
+  //   required List<LineChartBarData> lineBarsData,
+  //   required String leftTitleSuffix,
+  //   double? intervalY,
+  //   bool showDot = false,
+  //   List<HorizontalLine>? extraHorizontalLines,
+  // }) {
+  //   return LineChartData(
+  //     extraLinesData: ExtraLinesData(
+  //       horizontalLines: extraHorizontalLines ?? [],
+  //     ),
+  //     gridData: FlGridData(
+  //       show: true,
+  //       drawVerticalLine: false,
+  //       horizontalInterval: intervalY,
+  //       getDrawingHorizontalLine: (value) {
+  //         return FlLine(
+  //           color: Colors.grey.shade200,
+  //           strokeWidth: 1,
+  //           dashArray: [5, 5],
+  //         );
+  //       },
+  //     ),
+  //     titlesData: FlTitlesData(
+  //       show: true,
+  //       rightTitles: const AxisTitles(
+  //         sideTitles: SideTitles(showTitles: false),
+  //       ),
+  //       topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  //       bottomTitles: AxisTitles(
+  //         sideTitles: SideTitles(
+  //           showTitles: true,
+  //           reservedSize: 30,
+  //           interval: _calculateIntervalX(waktu.length),
+  //           getTitlesWidget: (value, meta) {
+  //             final index = value.toInt();
+  //             if (index >= 0 && index < waktu.length) {
+  //               return Padding(
+  //                 padding: const EdgeInsets.only(top: 8.0),
+  //                 child: Text(
+  //                   _formatTimeShort(waktu[index]),
+  //                   style: TextStyle(
+  //                     color: Colors.grey.shade600,
+  //                     fontSize: 10,
+  //                     fontFamily: 'Poppins',
+  //                   ),
+  //                 ),
+  //               );
+  //             }
+  //             return const SizedBox();
+  //           },
+  //         ),
+  //       ),
+  //       leftTitles: AxisTitles(
+  //         sideTitles: SideTitles(
+  //           showTitles: true,
+  //           interval: intervalY ?? (maxY - minY) / 4,
+  //           reservedSize: 40,
+  //           getTitlesWidget: (value, meta) {
+  //             if (value == minY || value == maxY) return const SizedBox();
+  //             return Text(
+  //               '${value.toInt()}$leftTitleSuffix',
+  //               style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+  //               textAlign: TextAlign.left,
+  //             );
+  //           },
+  //         ),
+  //       ),
+  //     ),
+  //     borderData: FlBorderData(
+  //       show: true,
+  //       border: Border(
+  //         bottom: BorderSide(color: Colors.grey.shade300),
+  //         left: BorderSide(color: Colors.grey.shade300),
+  //         top: BorderSide.none,
+  //         right: BorderSide.none,
+  //       ),
+  //     ),
+  //     minX: 0,
+  //     maxX: waktu.isNotEmpty ? (waktu.length - 1).toDouble() : 0,
+  //     minY: minY,
+  //     maxY: maxY,
+  //     lineBarsData: lineBarsData,
+  //     lineTouchData: LineTouchData(
+  //       handleBuiltInTouches: true,
+  //       touchTooltipData: LineTouchTooltipData(
+  //         getTooltipColor: (touchedSpot) => Colors.blueGrey.withOpacity(0.9),
+  //         tooltipPadding: const EdgeInsets.all(8),
+  //         tooltipMargin: 8,
+  //         getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+  //           return touchedBarSpots.map((barSpot) {
+  //             String label = '';
+  //             String unit = leftTitleSuffix;
+  //             final color = barSpot.bar.color;
+
+  //             if (color == colorSensor1) {
+  //               label = 'Sensor 1';
+  //               unit = '°C';
+  //             } else if (color == colorSensor2) {
+  //               label = 'Sensor 2';
+  //               unit = '°C';
+  //             } else if (color == colorKelembaban1) {
+  //               label = 'Kelembaban 1';
+  //               unit = '%';
+  //             } else if (color == colorKelembaban2) {
+  //               label = 'Kelembaban 2';
+  //               unit = '%';
+  //             }
+
+  //             return LineTooltipItem(
+  //               '$label: ${barSpot.y.toStringAsFixed(2)} $unit',
+  //               const TextStyle(
+  //                 color: Colors.white,
+  //                 fontWeight: FontWeight.bold,
+  //                 fontSize: 12,
+  //               ),
+  //             );
+  //           }).toList();
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
+
   LineChartData _mainChartData({
     required double minY,
     required double maxY,
@@ -446,6 +875,11 @@ class _FermentasiPageState extends State<FermentasiPage> {
     bool showDot = false,
     List<HorizontalLine>? extraHorizontalLines,
   }) {
+    // Pastikan interval valid (tidak 0 atau negatif)
+    final safeInterval = (intervalY != null && intervalY > 0) 
+        ? intervalY 
+        : ((maxY - minY) / 4).abs(); 
+        
     return LineChartData(
       extraLinesData: ExtraLinesData(
         horizontalLines: extraHorizontalLines ?? [],
@@ -453,7 +887,7 @@ class _FermentasiPageState extends State<FermentasiPage> {
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: intervalY,
+        horizontalInterval: safeInterval == 0 ? 1 : safeInterval, // Cegah devide by zero
         getDrawingHorizontalLine: (value) {
           return FlLine(
             color: Colors.grey.shade200,
@@ -495,12 +929,12 @@ class _FermentasiPageState extends State<FermentasiPage> {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            interval: intervalY ?? (maxY - minY) / 4,
-            reservedSize: 40,
+            interval: safeInterval == 0 ? 1 : safeInterval,
+            reservedSize: 45, // DIPERBESAR dari 40 ke 45 agar muat angka minus/besar
             getTitlesWidget: (value, meta) {
               if (value == minY || value == maxY) return const SizedBox();
               return Text(
-                '${value.toInt()}$leftTitleSuffix',
+                '${value.toStringAsFixed(1)}$leftTitleSuffix', // Tampilkan 1 desimal agar rapi
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
                 textAlign: TextAlign.left,
               );
